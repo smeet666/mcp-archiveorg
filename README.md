@@ -3,6 +3,7 @@
 [![npm](https://img.shields.io/npm/v/mcp-archiveorg.svg)](https://www.npmjs.com/package/mcp-archiveorg)
 [![CI](https://github.com/smeet666/mcp-archiveorg/actions/workflows/ci.yml/badge.svg)](https://github.com/smeet666/mcp-archiveorg/actions/workflows/ci.yml)
 [![license](https://img.shields.io/npm/l/mcp-archiveorg.svg)](LICENSE)
+[![Glama](https://glama.ai/mcp/servers/smeet666/mcp-archiveorg/badges/score.svg)](https://glama.ai/mcp/servers/smeet666/mcp-archiveorg)
 
 An MCP server for the Internet Archive. **Search the text inside digitised
 books**, browse the catalogue, and read Wayback Machine captures. No API key, no
