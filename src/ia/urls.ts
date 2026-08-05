@@ -6,7 +6,16 @@
  * not by whoever calls the tool.
  */
 
-import { BACKEND, BOOK_FIELD, HOST, HIT_FIELD, ROUTE, SORT } from "./paths.js";
+import {
+  BACKEND,
+  BOOK_CRITERION,
+  BOOK_FIELD,
+  BOOK_SORT,
+  HOST,
+  HIT_FIELD,
+  ROUTE,
+  SORT,
+} from "./paths.js";
 
 function withQuery(base: string, params: Record<string, string | number | undefined>): string {
   const url = new URL(base);
@@ -96,13 +105,58 @@ export const historyUrl = (target: string, limit: number, cursor?: string) =>
     fl: "timestamp,original,statuscode",
   });
 
-export const booksUrl = (query: string, limit: number, page: number) =>
-  withQuery(HOST.openLibrary + ROUTE.books, {
-    q: query,
+export interface BookCriteria {
+  query?: string;
+  subject?: string;
+  place?: string;
+  time?: string;
+  person?: string;
+  language?: string;
+  year_from?: number;
+  year_to?: number;
+  pages_min?: number;
+  pages_max?: number;
+  sort?: keyof typeof BOOK_SORT;
+}
+
+/**
+ * A criterion value, quoted so the index reads it as one phrase.
+ *
+ * Unquoted, "spy stories" would ask for works catalogued under "spy" and for
+ * the word "stories" anywhere, which answers a question nobody asked. The
+ * quotes and backslashes inside the value are escaped so a value cannot close
+ * its own quoting and continue as query syntax.
+ */
+const phrase = (value: string) => `"${value.replace(/([\\"])/g, "\\$1")}"`;
+
+/** An open end is written as the index's wildcard rather than as a guessed bound. */
+const range = (field: string, from?: number, to?: number) =>
+  `${field}:[${from ?? "*"} TO ${to ?? "*"}]`;
+
+export const booksUrl = (criteria: BookCriteria, limit: number, page: number) => {
+  const terms: string[] = [];
+  if (criteria.query) terms.push(criteria.query);
+  for (const [name, field] of Object.entries(BOOK_CRITERION)) {
+    const value = criteria[name as keyof typeof BOOK_CRITERION];
+    if (value) terms.push(`${field}:${phrase(value)}`);
+  }
+  if (criteria.year_from !== undefined || criteria.year_to !== undefined) {
+    terms.push(range(BOOK_FIELD.firstYear, criteria.year_from, criteria.year_to));
+  }
+  if (criteria.pages_min !== undefined || criteria.pages_max !== undefined) {
+    terms.push(range(BOOK_FIELD.pages, criteria.pages_min, criteria.pages_max));
+  }
+
+  const sort = criteria.sort ? BOOK_SORT[criteria.sort] : "";
+
+  return withQuery(HOST.openLibrary + ROUTE.books, {
+    q: terms.join(" AND "),
     limit,
     page,
     fields: Object.values(BOOK_FIELD).join(","),
+    ...(sort ? { sort } : {}),
   });
+};
 
 /** The Archive stamps captures as YYYYMMDDhhmmss, in UTC. */
 export function toArchiveStamp(date: Date): string {

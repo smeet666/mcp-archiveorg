@@ -7,24 +7,28 @@
     {
       "src": "https://raw.githubusercontent.com/smeet666/mcp-archiveorg/main/assets/icon-128.png",
       "mimeType": "image/png",
-      "sizes": ["128x128"]
+      "sizes": [
+        "128x128"
+      ]
     },
     {
       "src": "https://raw.githubusercontent.com/smeet666/mcp-archiveorg/main/assets/icon-512.png",
       "mimeType": "image/png",
-      "sizes": ["512x512"]
+      "sizes": [
+        "512x512"
+      ]
     }
   ],
   "repository": {
     "url": "https://github.com/smeet666/mcp-archiveorg",
     "source": "github"
   },
-  "version": "1.0.0",
+  "version": "1.1.0",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "mcp-archiveorg",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "transport": {
         "type": "stdio"
       },
@@ -54,7 +58,7 @@
     {
       "registryType": "mcpb",
       "identifier": "https://github.com/smeet666/mcp-archiveorg/releases/download/v1.0.0/mcp-archiveorg-1.0.0.mcpb",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "transport": {
         "type": "stdio"
       }

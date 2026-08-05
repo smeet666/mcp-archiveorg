@@ -14,7 +14,7 @@ _(Version française plus bas / French version below)_
 
 **One-click install**
 
-[![Install in Cursor](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/en/install-mcp?name=archiveorg&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsIm1jcC1pbnRlcm5ldGFyY2hpdmUiXX0%3D)
+[![Install in Cursor](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/en/install-mcp?name=archiveorg&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsIm1jcC1hcmNoaXZlb3JnIl19%3D)
 [![Install in VS Code](https://img.shields.io/badge/VS_Code-Install-0098FF?style=flat&logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=archiveorg&config=%7B%22name%22%3A%22archiveorg%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22mcp-archiveorg%22%5D%7D)
 
 **Claude Code**
@@ -45,16 +45,30 @@ npm and no configuration file to edit.
 
 ## Tools
 
-| Tool             | What it does                                           | Key parameters                          |
-| ---------------- | ------------------------------------------------------ | --------------------------------------- |
-| `search_inside`  | Finds a phrase in the text of scanned pages.           | `query`, `limit`, `page`                |
-| `search_items`   | Searches the catalogue: films, books, audio, software. | `query`, `media_type`, `sort`           |
-| `get_item`       | Reads one record, section by section.                  | `identifier`, `sections`, `file_format` |
-| `get_snapshot`   | The Wayback capture closest to a date.                 | `url`, `at`                             |
-| `list_snapshots` | Captures of a page, oldest first.                      | `url`, `limit`, `cursor`                |
-| `search_books`   | A work on Open Library: author, year, editions, scans. | `query`                                 |
+| Tool             | What it does                                           | Key parameters                                        |
+| ---------------- | ------------------------------------------------------ | ----------------------------------------------------- |
+| `search_inside`  | Finds a phrase in the text of scanned pages.           | `query`, `limit`, `page`                              |
+| `search_items`   | Searches the catalogue: films, books, audio, software. | `query`, `media_type`, `sort`                         |
+| `get_item`       | Reads one record, section by section.                  | `identifier`, `sections`, `file_format`               |
+| `get_snapshot`   | The Wayback capture closest to a date.                 | `url`, `at`                                           |
+| `list_snapshots` | Captures of a page, oldest first.                      | `url`, `limit`, `cursor`                              |
+| `search_books`   | A work on Open Library, by name or by criteria.        | `query`, `subject`, `place`, `time`, `person`, `sort` |
 
 The server is **read-only**. It uploads nothing and writes nothing back.
+
+## Finding a book you cannot name
+
+`search_books` takes a title or an author. It equally takes the shape of a book
+in place of its name: what it is catalogued under, where it is set, the period it
+treats, who it is about, how long it runs, when it first appeared. The criteria
+combine, and `sort` by rating or by readers answers which of the matches is
+worth reading.
+
+Asking for works on grief, in English, under 250 pages, first published between
+2000 and 2020, ordered by how many readers recorded them, returns _A Monster
+Calls_ and _The Tiger Rising_ rather than a list of books with "grief" in the
+title. The page count comes back on every row, because filtering on a number the
+answer never shows would be a promise it cannot keep.
 
 ## Searching inside the books is the point
 
@@ -195,7 +209,7 @@ Machine. Sans clé d'API, sans compte, sans configuration.
 
 **Installation en un clic**
 
-[![Install in Cursor](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/en/install-mcp?name=archiveorg&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsIm1jcC1pbnRlcm5ldGFyY2hpdmUiXX0%3D)
+[![Install in Cursor](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/en/install-mcp?name=archiveorg&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsIm1jcC1hcmNoaXZlb3JnIl19%3D)
 [![Install in VS Code](https://img.shields.io/badge/VS_Code-Install-0098FF?style=flat&logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=archiveorg&config=%7B%22name%22%3A%22archiveorg%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22mcp-archiveorg%22%5D%7D)
 
 **Claude Code**
@@ -226,16 +240,30 @@ configuration à modifier.
 
 ## Outils
 
-| Outil            | Rôle                                                    | Paramètres principaux                   |
-| ---------------- | ------------------------------------------------------- | --------------------------------------- |
-| `search_inside`  | Trouve une phrase dans le texte des pages numérisées.   | `query`, `limit`, `page`                |
-| `search_items`   | Cherche le catalogue : films, livres, audio, logiciels. | `query`, `media_type`, `sort`           |
-| `get_item`       | Lit une fiche, section par section.                     | `identifier`, `sections`, `file_format` |
-| `get_snapshot`   | La capture Wayback la plus proche d'une date.           | `url`, `at`                             |
-| `list_snapshots` | Les captures d'une page, de la plus ancienne.           | `url`, `limit`, `cursor`                |
-| `search_books`   | Une œuvre sur Open Library : auteur, année, éditions.   | `query`                                 |
+| Outil            | Rôle                                                    | Paramètres principaux                                 |
+| ---------------- | ------------------------------------------------------- | ----------------------------------------------------- |
+| `search_inside`  | Trouve une phrase dans le texte des pages numérisées.   | `query`, `limit`, `page`                              |
+| `search_items`   | Cherche le catalogue : films, livres, audio, logiciels. | `query`, `media_type`, `sort`                         |
+| `get_item`       | Lit une fiche, section par section.                     | `identifier`, `sections`, `file_format`               |
+| `get_snapshot`   | La capture Wayback la plus proche d'une date.           | `url`, `at`                                           |
+| `list_snapshots` | Les captures d'une page, de la plus ancienne.           | `url`, `limit`, `cursor`                              |
+| `search_books`   | Une œuvre sur Open Library, par nom ou par critères.    | `query`, `subject`, `place`, `time`, `person`, `sort` |
 
 Le serveur est **en lecture seule**. Il ne téléverse rien et n'écrit rien.
+
+## Trouver un livre dont on ignore le titre
+
+`search_books` accepte un titre ou un auteur. Il accepte tout autant la forme
+d'un livre à la place de son nom : son sujet, le lieu où il se déroule, l'époque qu'il traite, la personne dont il
+parle, sa longueur, sa date de première parution. Les critères se combinent, et
+`sort` par note ou par nombre de lecteurs répond à la question de savoir lequel
+mérite d'être lu.
+
+Demander des œuvres sur le deuil, en anglais, sous 250 pages, parues entre 2000
+et 2020, classées par nombre de lecteurs, renvoie _A Monster Calls_ et _The Tiger
+Rising_ plutôt qu'une liste de livres portant « deuil » dans leur titre. Le
+nombre de pages figure sur chaque ligne, car filtrer sur un nombre que la réponse
+n'affiche jamais serait une promesse intenable.
 
 ## Chercher à l'intérieur des livres est le cœur du sujet
 

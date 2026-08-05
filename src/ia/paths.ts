@@ -85,7 +85,36 @@ export const BOOK_FIELD = {
   firstYear: "first_publish_year",
   editions: "edition_count",
   scans: "ia",
+  pages: "number_of_pages_median",
+  subjects: "subject",
 } as const;
+
+/**
+ * Fields a discovery query can name, and the index field behind each one.
+ *
+ * Open Library indexes these separately from the free text, so `subject:grief`
+ * finds works catalogued under grief while the word "grief" alone finds every
+ * work that merely mentions it somewhere.
+ */
+export const BOOK_CRITERION = {
+  subject: "subject",
+  place: "place",
+  time: "time",
+  person: "person",
+  language: "language",
+} as const;
+
+/** What the index calls each order this server offers. Relevance sends none. */
+export const BOOK_SORT = {
+  relevance: "",
+  rating: "rating",
+  readers: "readinglog",
+  newest: "new",
+  oldest: "old",
+} as const;
+
+/** A work tagged with two hundred subjects would swamp an answer of ten rows. */
+export const MOST_SUBJECTS = 12;
 
 /** Public page for an item, which every result carries so it can be cited. */
 export const itemUrl = (identifier: string) =>

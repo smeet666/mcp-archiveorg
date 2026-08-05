@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.1.0
+
+- `search_books` finds a book you cannot name. It took a title or an author, so
+  a reader arriving with a shape rather than a name had nothing to ask with.
+  It now also takes `subject`, `place`, `time`, `person` and `language`, ranges
+  on the year of first publication and on the page count, and a `sort` by rating
+  or by readers. The criteria combine, and existing calls are untouched: a
+  `query` on its own behaves exactly as it did.
+- Every result carries `page_count` and `subjects`. Filtering on a page count
+  the answer never returned would have been a promise it could not keep.
+- A call naming no criterion at all is refused rather than answered with the
+  catalogue, which would read as a result instead of as a mistake. So is a year
+  or page range whose ends are the wrong way round.
+- Point the one-click Cursor install at the package this project publishes. The
+  link carried a name npm does not serve, so the install it offered could not
+  succeed.
+
 ## 1.0.0
 
 First stable release. The tool names, the argument names and the shape of the

@@ -36,6 +36,7 @@ import { RateLimiter } from "./rateLimiter.js";
 import type { CatalogueQuery } from "./urls.js";
 import {
   booksUrl,
+  type BookCriteria,
   catalogueUrl,
   historyUrl,
   insideUrl,
@@ -191,11 +192,11 @@ export class ArchiveClient {
   }
 
   searchBooks(
-    query: string,
+    criteria: BookCriteria,
     limit: number,
     page: number,
   ): Promise<Read<{ total: number; books: Book[] }>> {
-    const url = booksUrl(query, limit, page);
+    const url = booksUrl(criteria, limit, page);
     return this.read(url, (payload, onSkip) => toBooks(payload, url, onSkip));
   }
 }

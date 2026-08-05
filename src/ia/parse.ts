@@ -23,6 +23,7 @@ import type {
 } from "../types.js";
 import {
   BOOK_FIELD,
+  MOST_SUBJECTS,
   HIT_FIELD,
   META_FIELD,
   bookUrl,
@@ -452,6 +453,8 @@ export function toBooks(
       firstPublishedYear: asYear(doc[BOOK_FIELD.firstYear]),
       editionCount: asNumber(doc[BOOK_FIELD.editions]),
       archiveIdentifiers: asStrings(doc[BOOK_FIELD.scans]),
+      pageCount: asNumber(doc[BOOK_FIELD.pages]),
+      subjects: asStrings(doc[BOOK_FIELD.subjects]).slice(0, MOST_SUBJECTS),
       sourceUrl: bookUrl(key),
     });
   }

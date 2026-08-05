@@ -121,7 +121,7 @@ live("live Internet Archive", () => {
   }, 240_000);
 
   it("still returns a work with its author and the scans that hold it", async () => {
-    const { data } = await client().searchBooks("moby dick", 3, 1);
+    const { data } = await client().searchBooks({ query: "moby dick" }, 3, 1);
 
     expect(data.total, "the work count may have moved to another key").toBeGreaterThan(0);
     const book = data.books[0]!;

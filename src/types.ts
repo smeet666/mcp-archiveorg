@@ -123,5 +123,9 @@ export interface Book {
   editionCount: number | null;
   /** Archive identifiers holding a scan, which link a book to a readable copy. */
   archiveIdentifiers: string[];
+  /** Median pages across editions, which is what the index holds. Null when it holds none. */
+  pageCount: number | null;
+  /** Subjects the work is catalogued under, trimmed to the most prominent. */
+  subjects: string[];
   sourceUrl: string;
 }

@@ -2,7 +2,7 @@
   "manifest_version": "0.3",
   "name": "mcp-archiveorg",
   "display_name": "Internet Archive",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "MCP server for the Internet Archive. Search inside digitised books, browse the catalogue, and read Wayback Machine snapshots. No API key required.",
   "long_description": "Search the text inside digitised books, newspapers and documents, browse the Internet Archive catalogue, and read Wayback Machine captures of a web page. No API key, no account.\n\nThe full-text search is what this server exists for: it reads what optical recognition took off millions of scanned pages, so it finds a phrase that appears in no title and no catalogue record.",
   "author": {
@@ -33,7 +33,9 @@
     "entry_point": "server/index.js",
     "mcp_config": {
       "command": "node",
-      "args": ["${__dirname}/server/index.js"]
+      "args": [
+        "${__dirname}/server/index.js"
+      ]
     }
   },
   "tools": [
@@ -63,7 +65,11 @@
     }
   ],
   "compatibility": {
-    "platforms": ["darwin", "win32", "linux"],
+    "platforms": [
+      "darwin",
+      "win32",
+      "linux"
+    ],
     "runtimes": {
       "node": ">=20.0.0"
     }

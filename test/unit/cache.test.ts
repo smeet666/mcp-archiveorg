@@ -203,7 +203,7 @@ describe("the client counts what it had to skip", () => {
   it("says nothing about skipping when nothing was skipped", async () => {
     const { fetchImpl } = routedFetch([["openlibrary.org", fixture("books-empty")]]);
     const archive = client(fetchImpl);
-    const read = await archive.searchBooks("nothing at all", 10, 1);
+    const read = await archive.searchBooks({ query: "nothing at all" }, 10, 1);
     expect(read.skipped, "a clean read carries no skip count to explain").toBeUndefined();
   }, 10_000);
 });
