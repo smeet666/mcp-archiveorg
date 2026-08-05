@@ -126,7 +126,7 @@ export async function runSearchInside(
     if (hits.length > 0) notes.push(OCR_CAVEAT);
     if (data.total > hits.length) {
       notes.push(
-        `${data.total} documents match and ${hits.length} are shown. Ask for page ${args.page + 1} to continue: this count pages, so the answer in hand is not the whole of it.`,
+        `${data.total} documents match and ${hits.length} are shown. Ask for page ${args.page + 1} to continue: the matches run past this page, so the answer in hand is not the whole of it.`,
       );
     }
     if (data.total === 0) {

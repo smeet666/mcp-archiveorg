@@ -1,5 +1,28 @@
 # Changelog
 
+## 1.2.0
+
+- `search_books` listed every scan of every edition on each row, which for a
+  much-digitised work ran to hundreds of identifiers and made a page of six
+  results heavier than most whole documents this server returns. A row now
+  carries at most three, which is what a caller uses: one goes to `get_item`,
+  and the next replaces a scan that will not open.
+- Every row gains `scan_count`, the number of scans the work actually has, so a
+  shortened list is never read as all of them. The field description says the
+  list is a sample whenever the count is larger, and a note names how many were
+  left out and where the rest are.
+- `first_published_year` is the year Open Library derives from its edition
+  records, and a reissue or a mistyped edition can put it centuries from the
+  real date. Sorting by `newest` or `oldest` ranks on that field, so those rows
+  lead the answer. The tool description, the field and a note on any date-sorted
+  answer now say so, rather than presenting the ranking as settled.
+- A free-text search says that Open Library matches parts of words across titles
+  and authors, so a search for one author returns works by another whose name
+  merely contains it. `search_items` already carried the same warning about
+  descriptions.
+- Fix the grammar of the note `search_inside` writes when the matches run past
+  the page in hand.
+
 ## 1.1.0
 
 - `search_books` finds a book you cannot name. It took a title or an author, so

@@ -116,6 +116,17 @@ export const BOOK_SORT = {
 /** A work tagged with two hundred subjects would swamp an answer of ten rows. */
 export const MOST_SUBJECTS = 12;
 
+/**
+ * Scan identifiers published on one row of a listing.
+ *
+ * A much-digitised work carries hundreds of them, and a listing exists to pick
+ * one row out of many rather than to enumerate a single row's holdings. A
+ * caller passes one identifier to get_item and reaches for another when a scan
+ * does not open, so three cover the use and the rest are read from the work's
+ * own page.
+ */
+export const MOST_SCANS = 3;
+
 /** Public page for an item, which every result carries so it can be cited. */
 export const itemUrl = (identifier: string) =>
   `${HOST.archive}/details/${encodeURIComponent(identifier)}`;
