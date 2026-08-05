@@ -1,0 +1,61 @@
+{
+  "version": "fixture",
+  "session_context": {
+    "username": "(guest user)",
+    "is_guest": true,
+    "note": "ignored by the parsers"
+  },
+  "request": {
+    "client_request_parameters": {
+      "note": "ignored by the parsers"
+    }
+  },
+  "caching": {
+    "note": "ignored by the parsers"
+  },
+  "elapsed_secs": 0.12,
+  "response": {
+    "header": {
+      "note": "ignored"
+    },
+    "body": {
+      "hits": {
+        "total": 4177,
+        "hits": [
+          {
+            "fields": {
+              "identifier": "the-salt-almanac-1893",
+              "title": "The Salt Almanac",
+              "creator": "Ines Marchetti",
+              "year": 1893,
+              "page_num": 1,
+              "result_in_subfile": false
+            },
+            "highlight": {
+              "text": [
+                "the wind came off the flats and {{{the lamps went out}}} one by one along the road",
+                "nothing moved until {{{the lamps went out}}} and the dogs began"
+              ]
+            }
+          },
+          {
+            "fields": {
+              "identifier": "orchard-quarterly-v3",
+              "title": "Orchard Quarterly, Volume 3",
+              "year": "1902",
+              "page_num": 1,
+              "result_in_subfile": true,
+              "file_basename": "orchard-quarterly-1902-04"
+            },
+            "highlight": {
+              "text": ["a report that {{{the lamps went out}}} before the vote"]
+            }
+          }
+        ]
+      }
+    },
+    "hit_schema": {
+      "note": "ignored"
+    }
+  }
+}

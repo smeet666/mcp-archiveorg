@@ -1,0 +1,11 @@
+{
+  "url": "example.invalid",
+  "archived_snapshots": {
+    "closest": {
+      "status": "200",
+      "available": true,
+      "url": "http://web.archive.org/web/20010428102248/http://example.invalid/",
+      "timestamp": "20010428102248"
+    }
+  }
+}

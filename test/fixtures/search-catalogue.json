@@ -1,0 +1,59 @@
+{
+  "version": "fixture",
+  "session_context": {
+    "username": "(guest user)",
+    "is_guest": true,
+    "note": "ignored by the parsers"
+  },
+  "request": {
+    "client_request_parameters": {
+      "note": "ignored by the parsers"
+    }
+  },
+  "caching": {
+    "note": "ignored by the parsers"
+  },
+  "elapsed_secs": 0.12,
+  "response": {
+    "header": {
+      "note": "ignored"
+    },
+    "body": {
+      "hits": {
+        "total": 431,
+        "hits": [
+          {
+            "fields": {
+              "identifier": "the-glass-orchard-1971",
+              "title": "The Glass Orchard",
+              "creator": ["Vashti Reame", "Orchard Pictures"],
+              "year": 1971,
+              "date": "1971-06-04",
+              "mediatype": "movies",
+              "downloads": 8421
+            }
+          },
+          {
+            "fields": {
+              "identifier": "letters-from-the-salt-flats",
+              "title": "Letters from the Salt Flats",
+              "creator": "Ines Marchetti",
+              "year": "1954",
+              "mediatype": "texts",
+              "downloads": "311"
+            }
+          },
+          {
+            "fields": {
+              "title": "A row with no identifier",
+              "year": 1990
+            }
+          }
+        ]
+      }
+    },
+    "hit_schema": {
+      "note": "ignored"
+    }
+  }
+}

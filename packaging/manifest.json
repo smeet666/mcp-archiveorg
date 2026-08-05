@@ -1,0 +1,71 @@
+{
+  "manifest_version": "0.3",
+  "name": "mcp-internetarchive",
+  "display_name": "Internet Archive",
+  "version": "1.0.0",
+  "description": "MCP server for the Internet Archive. Search inside digitised books, browse the catalogue, and read Wayback Machine snapshots. No API key required.",
+  "long_description": "Search the text inside digitised books, newspapers and documents, browse the Internet Archive catalogue, and read Wayback Machine captures of a web page. No API key, no account.\n\nThe full-text search is what this server exists for: it reads what optical recognition took off millions of scanned pages, so it finds a phrase that appears in no title and no catalogue record.",
+  "author": {
+    "name": "Damien Bouissou",
+    "url": "https://github.com/smeet666"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/smeet666/mcp-internetarchive.git"
+  },
+  "homepage": "https://github.com/smeet666/mcp-internetarchive#readme",
+  "documentation": "https://github.com/smeet666/mcp-internetarchive#readme",
+  "support": "https://github.com/smeet666/mcp-internetarchive/issues",
+  "icon": "assets/icon-512.png",
+  "license": "MIT",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "internet-archive",
+    "archive-org",
+    "wayback-machine",
+    "full-text-search",
+    "open-library",
+    "books"
+  ],
+  "server": {
+    "type": "node",
+    "entry_point": "server/index.js",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/server/index.js"]
+    }
+  },
+  "tools": [
+    {
+      "name": "search_inside",
+      "description": "Find a phrase in the text of scanned pages."
+    },
+    {
+      "name": "search_items",
+      "description": "Search the catalogue by title, creator or subject."
+    },
+    {
+      "name": "get_item",
+      "description": "Read one record, section by section."
+    },
+    {
+      "name": "get_snapshot",
+      "description": "The Wayback capture closest to a date."
+    },
+    {
+      "name": "list_snapshots",
+      "description": "Captures of a page, oldest first."
+    },
+    {
+      "name": "search_books",
+      "description": "Find a work, its author and its editions."
+    }
+  ],
+  "compatibility": {
+    "platforms": ["darwin", "win32", "linux"],
+    "runtimes": {
+      "node": ">=20.0.0"
+    }
+  }
+}

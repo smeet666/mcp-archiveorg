@@ -1,0 +1,42 @@
+{
+  "created": 1700000000,
+  "files": [
+    {
+      "name": "the-glass-orchard.pdf",
+      "format": "PDF",
+      "size": "4821004"
+    },
+    {
+      "name": "the-glass-orchard_djvu.txt",
+      "format": "DjVuTXT",
+      "size": "182004"
+    },
+    {
+      "name": "__ia_thumb.jpg",
+      "format": "Item Tile",
+      "size": "9821"
+    },
+    {
+      "format": "Metadata",
+      "size": "12"
+    }
+  ],
+  "item_size": 5012340,
+  "metadata": {
+    "identifier": "the-glass-orchard-1971",
+    "title": "The Glass Orchard",
+    "creator": ["Vashti Reame", "Orchard Pictures"],
+    "description": "A field recording made across two winters in the salt country.",
+    "date": "1971-06-04",
+    "year": "1971",
+    "publisher": "Orchard Pictures",
+    "language": "eng",
+    "mediatype": "movies",
+    "downloads": 8421,
+    "collection": ["feature_films", "moviesandfilms"],
+    "licenseurl": "https://creativecommons.org/licenses/by/4.0/"
+  },
+  "ignored_block": {
+    "note": "the parsers must not read this"
+  }
+}

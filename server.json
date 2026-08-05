@@ -1,0 +1,63 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.smeet666/mcp-internetarchive",
+  "description": "Search inside digitised books, browse the Internet Archive catalogue and read Wayback captures.",
+  "websiteUrl": "https://github.com/smeet666/mcp-internetarchive#readme",
+  "icons": [
+    {
+      "src": "https://raw.githubusercontent.com/smeet666/mcp-internetarchive/main/assets/icon-128.png",
+      "mimeType": "image/png",
+      "sizes": ["128x128"]
+    },
+    {
+      "src": "https://raw.githubusercontent.com/smeet666/mcp-internetarchive/main/assets/icon-512.png",
+      "mimeType": "image/png",
+      "sizes": ["512x512"]
+    }
+  ],
+  "repository": {
+    "url": "https://github.com/smeet666/mcp-internetarchive",
+    "source": "github"
+  },
+  "version": "1.0.0",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "mcp-internetarchive",
+      "version": "1.0.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "IA_USER_AGENT",
+          "description": "Identify your own client. The project's own identifier is appended, so the Archive can always reach a human.",
+          "isRequired": false
+        },
+        {
+          "name": "IA_MIN_INTERVAL_MS",
+          "description": "Minimum milliseconds between requests. Default 1000, floor 500.",
+          "isRequired": false
+        },
+        {
+          "name": "IA_HISTORY_TIMEOUT_MS",
+          "description": "Deadline for the capture index, which answers in tens of seconds. Default 60000.",
+          "isRequired": false
+        },
+        {
+          "name": "IA_LOG_LEVEL",
+          "description": "silent, error, info or debug. Default error. Logs go to stderr.",
+          "isRequired": false
+        }
+      ]
+    },
+    {
+      "registryType": "mcpb",
+      "identifier": "https://github.com/smeet666/mcp-internetarchive/releases/download/v1.0.0/mcp-internetarchive-1.0.0.mcpb",
+      "version": "1.0.0",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "version": "fixture",
+  "session_context": {
+    "username": "(guest user)",
+    "is_guest": true,
+    "note": "ignored by the parsers"
+  },
+  "request": {
+    "client_request_parameters": {
+      "note": "ignored by the parsers"
+    }
+  },
+  "caching": {
+    "note": "ignored by the parsers"
+  },
+  "elapsed_secs": 0.12,
+  "response": {
+    "header": {
+      "note": "ignored"
+    },
+    "body": {
+      "hits": {
+        "total": 12,
+        "hits": [
+          {
+            "fields": {
+              "title": "No identifier here"
+            }
+          },
+          {
+            "fields": {}
+          }
+        ]
+      }
+    },
+    "hit_schema": {
+      "note": "ignored"
+    }
+  }
+}
