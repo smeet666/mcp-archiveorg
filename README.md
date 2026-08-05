@@ -1,8 +1,8 @@
-# mcp-internetarchive
+# mcp-archiveorg
 
-[![npm](https://img.shields.io/npm/v/mcp-internetarchive.svg)](https://www.npmjs.com/package/mcp-internetarchive)
-[![CI](https://github.com/smeet666/mcp-internetarchive/actions/workflows/ci.yml/badge.svg)](https://github.com/smeet666/mcp-internetarchive/actions/workflows/ci.yml)
-[![license](https://img.shields.io/npm/l/mcp-internetarchive.svg)](LICENSE)
+[![npm](https://img.shields.io/npm/v/mcp-archiveorg.svg)](https://www.npmjs.com/package/mcp-archiveorg)
+[![CI](https://github.com/smeet666/mcp-archiveorg/actions/workflows/ci.yml/badge.svg)](https://github.com/smeet666/mcp-archiveorg/actions/workflows/ci.yml)
+[![license](https://img.shields.io/npm/l/mcp-archiveorg.svg)](LICENSE)
 
 An MCP server for the Internet Archive. **Search the text inside digitised
 books**, browse the catalogue, and read Wayback Machine captures. No API key, no
@@ -14,13 +14,13 @@ _(Version française plus bas / French version below)_
 
 **One-click install**
 
-[![Install in Cursor](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/en/install-mcp?name=internetarchive&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsIm1jcC1pbnRlcm5ldGFyY2hpdmUiXX0%3D)
-[![Install in VS Code](https://img.shields.io/badge/VS_Code-Install-0098FF?style=flat&logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=internetarchive&config=%7B%22name%22%3A%22internetarchive%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22mcp-internetarchive%22%5D%7D)
+[![Install in Cursor](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/en/install-mcp?name=archiveorg&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsIm1jcC1pbnRlcm5ldGFyY2hpdmUiXX0%3D)
+[![Install in VS Code](https://img.shields.io/badge/VS_Code-Install-0098FF?style=flat&logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=archiveorg&config=%7B%22name%22%3A%22archiveorg%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22mcp-archiveorg%22%5D%7D)
 
 **Claude Code**
 
 ```bash
-claude mcp add internetarchive -- npx -y mcp-internetarchive
+claude mcp add archiveorg -- npx -y mcp-archiveorg
 ```
 
 **Claude Desktop, Cursor, and any client using the standard config format**
@@ -28,9 +28,9 @@ claude mcp add internetarchive -- npx -y mcp-internetarchive
 ```json
 {
   "mcpServers": {
-    "internetarchive": {
+    "archiveorg": {
       "command": "npx",
-      "args": ["-y", "mcp-internetarchive"]
+      "args": ["-y", "mcp-archiveorg"]
     }
   }
 }
@@ -38,8 +38,8 @@ claude mcp add internetarchive -- npx -y mcp-internetarchive
 
 **Bundle, without npm**
 
-Download `mcp-internetarchive-<version>.mcpb` from
-[the latest release](https://github.com/smeet666/mcp-internetarchive/releases/latest)
+Download `mcp-archiveorg-<version>.mcpb` from
+[the latest release](https://github.com/smeet666/mcp-archiveorg/releases/latest)
 and open it. A client that supports MCP bundles installs it on its own, with no
 npm and no configuration file to edit.
 
@@ -140,7 +140,7 @@ An unbalanced quotation mark, bracket or colon is read as an operator.
 
 **`parse_failure`.** A response arrived in a shape this server cannot read,
 which usually means a route changed. Please
-[open an issue](https://github.com/smeet666/mcp-internetarchive/issues) with the
+[open an issue](https://github.com/smeet666/mcp-archiveorg/issues) with the
 arguments you used.
 
 ## Development
@@ -159,12 +159,12 @@ corpus of invented titles and passages, so tests are deterministic and no
 Archive content lives in this repository.
 
 The access layer under `src/ia` does not import the MCP SDK and is published
-separately as `mcp-internetarchive/client`, usable as a plain library.
+separately as `mcp-archiveorg/client`, usable as a plain library.
 
 ## Contributing
 
 Bugs, questions and ideas all belong in
-[the issue tracker](https://github.com/smeet666/mcp-internetarchive/issues).
+[the issue tracker](https://github.com/smeet666/mcp-archiveorg/issues).
 Pull requests are welcome; please open an issue first so we can agree on what
 the right answer is before you write it. [CONTRIBUTING.md](CONTRIBUTING.md) has
 the detail, and [SECURITY.md](SECURITY.md) covers anything exploitable.
@@ -185,7 +185,7 @@ Internet Archive.
 
 ---
 
-# mcp-internetarchive (français)
+# mcp-archiveorg (français)
 
 Un serveur MCP pour l'Internet Archive. **Cherchez une phrase dans le texte des
 livres numérisés**, parcourez le catalogue, et lisez les captures de la Wayback
@@ -195,13 +195,13 @@ Machine. Sans clé d'API, sans compte, sans configuration.
 
 **Installation en un clic**
 
-[![Install in Cursor](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/en/install-mcp?name=internetarchive&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsIm1jcC1pbnRlcm5ldGFyY2hpdmUiXX0%3D)
-[![Install in VS Code](https://img.shields.io/badge/VS_Code-Install-0098FF?style=flat&logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=internetarchive&config=%7B%22name%22%3A%22internetarchive%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22mcp-internetarchive%22%5D%7D)
+[![Install in Cursor](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/en/install-mcp?name=archiveorg&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsIm1jcC1pbnRlcm5ldGFyY2hpdmUiXX0%3D)
+[![Install in VS Code](https://img.shields.io/badge/VS_Code-Install-0098FF?style=flat&logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=archiveorg&config=%7B%22name%22%3A%22archiveorg%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22mcp-archiveorg%22%5D%7D)
 
 **Claude Code**
 
 ```bash
-claude mcp add internetarchive -- npx -y mcp-internetarchive
+claude mcp add archiveorg -- npx -y mcp-archiveorg
 ```
 
 **Claude Desktop, Cursor, et tout client utilisant le format standard**
@@ -209,9 +209,9 @@ claude mcp add internetarchive -- npx -y mcp-internetarchive
 ```json
 {
   "mcpServers": {
-    "internetarchive": {
+    "archiveorg": {
       "command": "npx",
-      "args": ["-y", "mcp-internetarchive"]
+      "args": ["-y", "mcp-archiveorg"]
     }
   }
 }
@@ -219,8 +219,8 @@ claude mcp add internetarchive -- npx -y mcp-internetarchive
 
 **Bundle, sans npm**
 
-Téléchargez `mcp-internetarchive-<version>.mcpb` depuis
-[la dernière release](https://github.com/smeet666/mcp-internetarchive/releases/latest)
+Téléchargez `mcp-archiveorg-<version>.mcpb` depuis
+[la dernière release](https://github.com/smeet666/mcp-archiveorg/releases/latest)
 et ouvrez-le. Un client compatible l'installe seul, sans npm ni fichier de
 configuration à modifier.
 
@@ -322,7 +322,7 @@ opérateur.
 
 **`parse_failure`.** Une réponse est arrivée dans une forme illisible pour ce
 serveur, ce qui signale en général qu'une route a changé. Merci
-[d'ouvrir une issue](https://github.com/smeet666/mcp-internetarchive/issues).
+[d'ouvrir une issue](https://github.com/smeet666/mcp-archiveorg/issues).
 
 ## Développement
 
@@ -340,12 +340,12 @@ corpus de titres et de passages inventés, ce qui rend les tests déterministes 
 évite de stocker du contenu de l'Archive dans ce dépôt.
 
 La couche d'accès sous `src/ia` n'importe pas le SDK MCP et est publiée
-séparément sous `mcp-internetarchive/client`, utilisable comme bibliothèque.
+séparément sous `mcp-archiveorg/client`, utilisable comme bibliothèque.
 
 ## Contribuer
 
 Bugs, questions et idées vont dans
-[le suivi d'issues](https://github.com/smeet666/mcp-internetarchive/issues). Les
+[le suivi d'issues](https://github.com/smeet666/mcp-archiveorg/issues). Les
 pull requests sont bienvenues ; ouvrez d'abord une issue pour qu'on s'accorde
 sur la bonne réponse avant que vous n'écriviez le code.
 

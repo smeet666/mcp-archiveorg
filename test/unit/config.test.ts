@@ -243,6 +243,6 @@ describe("createLogger", () => {
 
   it("prefixes every line with the server's name, so it can be told apart in a shared log", () => {
     createLogger("info").info("ready");
-    expect(warnings()).toContain("[mcp-internetarchive]");
+    expect(warnings()).toContain("[mcp-archiveorg]");
   });
 });

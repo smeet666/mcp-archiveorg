@@ -96,7 +96,7 @@ describe("the User-Agent", () => {
       });
 
       expect(client.userAgent, `a contact address must survive "${claimed}"`).toContain(
-        "github.com/smeet666/mcp-internetarchive",
+        "github.com/smeet666/mcp-archiveorg",
       );
     }
   });
@@ -107,7 +107,7 @@ describe("the User-Agent", () => {
       logger: silentLogger,
     });
 
-    const occurrences = client.userAgent.split("mcp-internetarchive/").length - 1;
+    const occurrences = client.userAgent.split("mcp-archiveorg/").length - 1;
     expect(occurrences, "the identifier belongs in the string once").toBe(1);
   });
 });

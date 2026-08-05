@@ -147,7 +147,7 @@ live("live Internet Archive", () => {
     expect(
       disguised.userAgent,
       "the Archive has to be able to reach a human about this traffic",
-    ).toContain("github.com/smeet666/mcp-internetarchive");
+    ).toContain("github.com/smeet666/mcp-archiveorg");
   });
 
   it("never lets an error reach a caller as something other than an ArchiveError", async () => {

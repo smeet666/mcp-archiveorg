@@ -1,6 +1,6 @@
 {
   "manifest_version": "0.3",
-  "name": "mcp-internetarchive",
+  "name": "mcp-archiveorg",
   "display_name": "Internet Archive",
   "version": "1.0.0",
   "description": "MCP server for the Internet Archive. Search inside digitised books, browse the catalogue, and read Wayback Machine snapshots. No API key required.",
@@ -11,11 +11,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/smeet666/mcp-internetarchive.git"
+    "url": "https://github.com/smeet666/mcp-archiveorg.git"
   },
-  "homepage": "https://github.com/smeet666/mcp-internetarchive#readme",
-  "documentation": "https://github.com/smeet666/mcp-internetarchive#readme",
-  "support": "https://github.com/smeet666/mcp-internetarchive/issues",
+  "homepage": "https://github.com/smeet666/mcp-archiveorg#readme",
+  "documentation": "https://github.com/smeet666/mcp-archiveorg#readme",
+  "support": "https://github.com/smeet666/mcp-archiveorg/issues",
   "icon": "assets/icon-512.png",
   "license": "MIT",
   "keywords": [

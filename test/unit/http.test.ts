@@ -49,7 +49,7 @@ interface CallOptions {
 
 const options = (o: CallOptions) => ({
   url: URL_UNDER_TEST,
-  userAgent: "mcp-internetarchive/test (+https://example.invalid)",
+  userAgent: "mcp-archiveorg/test (+https://example.invalid)",
   timeoutMs: o.timeoutMs ?? 2000,
   maxRetries: o.maxRetries ?? 0,
   limiter: o.limiter ?? new RateLimiter({ intervalMs: 1 }),
@@ -113,7 +113,7 @@ describe("fetchJson, the good path", () => {
     expect(
       headers.get("user-agent"),
       "the User-Agent this server was configured with is sent",
-    ).toBe("mcp-internetarchive/test (+https://example.invalid)");
+    ).toBe("mcp-archiveorg/test (+https://example.invalid)");
   });
 
   it("reports a clean answer to the limiter, so the pacing can recover", async () => {

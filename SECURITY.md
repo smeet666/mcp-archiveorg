@@ -3,7 +3,7 @@
 ## Reporting a vulnerability
 
 Use GitHub's private reporting: **Security → Report a vulnerability** on
-<https://github.com/smeet666/mcp-internetarchive/security/advisories/new>. It reaches me
+<https://github.com/smeet666/mcp-archiveorg/security/advisories/new>. It reaches me
 without the report being public first.
 
 Please do not open a public issue for something exploitable.

@@ -1,5 +1,5 @@
 {
-  "name": "mcp-internetarchive",
+  "name": "mcp-archiveorg",
   "version": "1.0.0",
   "description": "MCP server for the Internet Archive. Search inside digitised books, browse the catalogue, and read Wayback Machine snapshots. No API key required.",
   "keywords": [
@@ -12,9 +12,9 @@
     "open-library",
     "books"
   ],
-  "homepage": "https://github.com/smeet666/mcp-internetarchive#readme",
+  "homepage": "https://github.com/smeet666/mcp-archiveorg#readme",
   "bugs": {
-    "url": "https://github.com/smeet666/mcp-internetarchive/issues"
+    "url": "https://github.com/smeet666/mcp-archiveorg/issues"
   },
   "funding": {
     "type": "buymeacoffee",
@@ -22,13 +22,13 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/smeet666/mcp-internetarchive.git"
+    "url": "git+https://github.com/smeet666/mcp-archiveorg.git"
   },
   "license": "MIT",
   "author": "Damien Bouissou",
   "type": "module",
   "bin": {
-    "mcp-internetarchive": "dist/index.js"
+    "mcp-archiveorg": "dist/index.js"
   },
   "exports": {
     ".": "./dist/index.js",
@@ -46,7 +46,7 @@
   "engines": {
     "node": ">=20.0.0"
   },
-  "mcpName": "io.github.smeet666/mcp-internetarchive",
+  "mcpName": "io.github.smeet666/mcp-archiveorg",
   "scripts": {
     "build": "tsup",
     "typecheck": "tsc --noEmit",

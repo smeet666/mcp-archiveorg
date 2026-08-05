@@ -5,7 +5,7 @@ below is meant to save you from writing something that then has to be rewritten.
 
 ## Where to say something
 
-Open an issue: <https://github.com/smeet666/mcp-internetarchive/issues>
+Open an issue: <https://github.com/smeet666/mcp-archiveorg/issues>
 
 That is the right place for a bug, a question, an idea, or "this answer looks
 wrong to me". There is no mailing list, no chat and no support address. The npm

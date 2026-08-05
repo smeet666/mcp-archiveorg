@@ -1,29 +1,29 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.smeet666/mcp-internetarchive",
+  "name": "io.github.smeet666/mcp-archiveorg",
   "description": "Search inside digitised books, browse the Internet Archive catalogue and read Wayback captures.",
-  "websiteUrl": "https://github.com/smeet666/mcp-internetarchive#readme",
+  "websiteUrl": "https://github.com/smeet666/mcp-archiveorg#readme",
   "icons": [
     {
-      "src": "https://raw.githubusercontent.com/smeet666/mcp-internetarchive/main/assets/icon-128.png",
+      "src": "https://raw.githubusercontent.com/smeet666/mcp-archiveorg/main/assets/icon-128.png",
       "mimeType": "image/png",
       "sizes": ["128x128"]
     },
     {
-      "src": "https://raw.githubusercontent.com/smeet666/mcp-internetarchive/main/assets/icon-512.png",
+      "src": "https://raw.githubusercontent.com/smeet666/mcp-archiveorg/main/assets/icon-512.png",
       "mimeType": "image/png",
       "sizes": ["512x512"]
     }
   ],
   "repository": {
-    "url": "https://github.com/smeet666/mcp-internetarchive",
+    "url": "https://github.com/smeet666/mcp-archiveorg",
     "source": "github"
   },
   "version": "1.0.0",
   "packages": [
     {
       "registryType": "npm",
-      "identifier": "mcp-internetarchive",
+      "identifier": "mcp-archiveorg",
       "version": "1.0.0",
       "transport": {
         "type": "stdio"
@@ -53,7 +53,7 @@
     },
     {
       "registryType": "mcpb",
-      "identifier": "https://github.com/smeet666/mcp-internetarchive/releases/download/v1.0.0/mcp-internetarchive-1.0.0.mcpb",
+      "identifier": "https://github.com/smeet666/mcp-archiveorg/releases/download/v1.0.0/mcp-archiveorg-1.0.0.mcpb",
       "version": "1.0.0",
       "transport": {
         "type": "stdio"

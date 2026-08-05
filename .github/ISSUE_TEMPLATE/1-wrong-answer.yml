@@ -39,6 +39,6 @@ body:
     id: version
     attributes:
       label: Version
-      description: "`npm ls -g mcp-internetarchive`, or the version your client reports."
+      description: "`npm ls -g mcp-archiveorg`, or the version your client reports."
     validations:
       required: true

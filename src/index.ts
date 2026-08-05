@@ -24,6 +24,6 @@ async function main(): Promise<void> {
 
 main().catch((error: unknown) => {
   const message = error instanceof Error ? error.message : String(error);
-  process.stderr.write(`[mcp-internetarchive] fatal: ${message}\n`);
+  process.stderr.write(`[mcp-archiveorg] fatal: ${message}\n`);
   process.exit(1);
 });

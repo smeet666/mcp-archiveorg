@@ -83,7 +83,7 @@ export function createServer(options: CreateServerOptions = {}): McpServer {
   });
 
   const server = new McpServer(
-    { name: "mcp-internetarchive", version: PKG_VERSION },
+    { name: "mcp-archiveorg", version: PKG_VERSION },
     { instructions: INSTRUCTIONS },
   );
 

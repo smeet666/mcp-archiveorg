@@ -36,7 +36,7 @@ export interface Config {
   logLevel: LogLevel;
 }
 
-export const DEFAULT_USER_AGENT = `mcp-internetarchive/${PKG_VERSION} (+${REPO_URL})`;
+export const DEFAULT_USER_AGENT = `mcp-archiveorg/${PKG_VERSION} (+${REPO_URL})`;
 
 export interface Logger {
   debug(message: string): void;
@@ -49,7 +49,7 @@ export function createLogger(level: LogLevel): Logger {
   const rank = LOG_LEVELS.indexOf(level);
   const write = (at: LogLevel, message: string) => {
     if (rank === 0 || LOG_LEVELS.indexOf(at) > rank) return;
-    process.stderr.write(`[mcp-internetarchive] ${at}: ${message}\n`);
+    process.stderr.write(`[mcp-archiveorg] ${at}: ${message}\n`);
   };
   return {
     debug: (m) => write("debug", m),
@@ -74,7 +74,7 @@ function readInteger(
   const value = Number(raw);
   if (!Number.isFinite(value) || !Number.isInteger(value)) {
     process.stderr.write(
-      `[mcp-internetarchive] error: ${name}="${raw}" is not a whole number; using ${fallback}.\n`,
+      `[mcp-archiveorg] error: ${name}="${raw}" is not a whole number; using ${fallback}.\n`,
     );
     return fallback;
   }
@@ -82,7 +82,7 @@ function readInteger(
     // Clamping silently would let a caller believe a setting took effect when
     // the opposite is true, so the refusal is stated and the default stands.
     process.stderr.write(
-      `[mcp-internetarchive] error: ${name}=${value} is outside ${min}..${max}; using ${fallback}.\n`,
+      `[mcp-archiveorg] error: ${name}=${value} is outside ${min}..${max}; using ${fallback}.\n`,
     );
     return fallback;
   }
@@ -94,7 +94,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   const logLevel = level && LOG_LEVELS.includes(level) ? level : "error";
   if (level && !LOG_LEVELS.includes(level)) {
     process.stderr.write(
-      `[mcp-internetarchive] error: IA_LOG_LEVEL="${level}" is not one of ${LOG_LEVELS.join(", ")}; using error.\n`,
+      `[mcp-archiveorg] error: IA_LOG_LEVEL="${level}" is not one of ${LOG_LEVELS.join(", ")}; using error.\n`,
     );
   }
 
