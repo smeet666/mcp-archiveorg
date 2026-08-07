@@ -10,6 +10,7 @@
 import { z } from "zod";
 import type { ArchiveClient } from "../ia/client.js";
 import { invalidInput } from "../errors.js";
+import { strictInput } from "./arguments.js";
 import { ok, snapshotSchema, toToolError } from "./shared.js";
 import type { ToolResult } from "./shared.js";
 
@@ -20,7 +21,7 @@ export const getSnapshotDescription = [
   "This finds the capture and links to it. It does not return the page's contents.",
 ].join(" ");
 
-export const getSnapshotInput = z.object({
+export const getSnapshotInput = strictInput({
   url: z
     .string()
     .min(3)

@@ -9,6 +9,7 @@
 
 import { z } from "zod";
 import type { ArchiveClient } from "../ia/client.js";
+import { strictInput } from "./arguments.js";
 import { itemSummarySchema, ok, toToolError, truncate } from "./shared.js";
 import type { ToolResult } from "./shared.js";
 
@@ -22,7 +23,7 @@ export const getItemDescription = [
   "'file_count' and 'total_bytes' are always reported, whether or not the file list was asked for.",
 ].join(" ");
 
-export const getItemInput = z.object({
+export const getItemInput = strictInput({
   identifier: z.string().min(1).max(200).describe("Archive identifier, such as 'nasa'."),
   sections: z
     .array(z.enum(SECTIONS))

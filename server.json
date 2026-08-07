@@ -23,12 +23,12 @@
     "url": "https://github.com/smeet666/mcp-archiveorg",
     "source": "github"
   },
-  "version": "1.2.0",
+  "version": "1.3.0",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "mcp-archiveorg",
-      "version": "1.2.0",
+      "version": "1.3.0",
       "transport": {
         "type": "stdio"
       },
@@ -58,7 +58,7 @@
     {
       "registryType": "mcpb",
       "identifier": "https://github.com/smeet666/mcp-archiveorg/releases/download/v1.2.0/mcp-archiveorg-1.2.0.mcpb",
-      "version": "1.2.0",
+      "version": "1.3.0",
       "transport": {
         "type": "stdio"
       }

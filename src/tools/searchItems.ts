@@ -8,6 +8,7 @@
 
 import { z } from "zod";
 import type { ArchiveClient } from "../ia/client.js";
+import { strictInput } from "./arguments.js";
 import { itemSummarySchema, ok, renderItems, toToolError } from "./shared.js";
 import type { ToolResult } from "./shared.js";
 
@@ -18,7 +19,7 @@ export const searchItemsDescription = [
   "Every row carries an 'identifier', which get_item takes.",
 ].join(" ");
 
-export const searchItemsInput = z.object({
+export const searchItemsInput = strictInput({
   query: z
     .string()
     .min(1)

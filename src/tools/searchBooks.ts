@@ -11,6 +11,7 @@ import { z } from "zod";
 import type { ArchiveClient } from "../ia/client.js";
 import { invalidInput } from "../errors.js";
 import { MOST_SCANS } from "../ia/paths.js";
+import { strictInput } from "./arguments.js";
 import { ok, toToolError } from "./shared.js";
 import type { ToolResult } from "./shared.js";
 
@@ -26,7 +27,7 @@ export const searchBooksDescription = [
   "Use this to identify a work, and search_inside to find a phrase within one.",
 ].join(" ");
 
-export const searchBooksInput = z.object({
+export const searchBooksInput = strictInput({
   query: z
     .string()
     .min(2)

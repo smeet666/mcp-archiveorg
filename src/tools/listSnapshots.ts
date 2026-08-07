@@ -9,6 +9,7 @@
 
 import { z } from "zod";
 import type { ArchiveClient } from "../ia/client.js";
+import { strictInput } from "./arguments.js";
 import { ok, snapshotSchema, toToolError } from "./shared.js";
 import type { ToolResult } from "./shared.js";
 
@@ -20,7 +21,7 @@ export const listSnapshotsDescription = [
   "To walk further back, pass the 'next_cursor' from the previous answer as 'cursor'. The index counts rows rather than positions, so there is no page number and no arithmetic to do: a null 'next_cursor' means the end of what it holds.",
 ].join(" ");
 
-export const listSnapshotsInput = z.object({
+export const listSnapshotsInput = strictInput({
   url: z.string().min(3).max(2000).describe("Address to look up."),
   limit: z.number().int().min(1).max(100).default(20).describe("Captures to return."),
   cursor: z

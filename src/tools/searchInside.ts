@@ -8,6 +8,7 @@
 
 import { z } from "zod";
 import type { ArchiveClient } from "../ia/client.js";
+import { strictInput } from "./arguments.js";
 import { OCR_CAVEAT, ok, toToolError, truncate } from "./shared.js";
 import type { ToolResult } from "./shared.js";
 
@@ -21,7 +22,7 @@ export const searchInsideDescription = [
   "Use search_items or search_books instead when looking for a work by its title, author or subject.",
 ].join(" ");
 
-export const searchInsideInput = z.object({
+export const searchInsideInput = strictInput({
   query: z
     .string()
     .min(2)
