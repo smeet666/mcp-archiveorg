@@ -110,6 +110,14 @@ pass `next_cursor` as `cursor`, and a null one means the end of the history.
 mention a name ranks alongside that person's own work. Read `creator` before
 attributing a result.
 
+**Ordering by date is not a chronology.** `oldest` and `newest` rank
+`search_items` on the date whoever deposited an item typed into the record. An
+item the Archive holds no date for carries a placeholder at the start of the
+calendar, and the index sorts that placeholder as a real date, so those orders
+lead with rows whose `year` is null. The field also carries no era, so a clay
+tablet made in 1744 BCE is filed as 1744. Every answer ordered that way says
+what the order rests on, and counts the rows on the page that carry no year.
+
 **Scanned text is machine-read.** Excerpts carry the misreadings that come with
 it. Quote them as scanned text and follow the link.
 
@@ -303,6 +311,14 @@ en `cursor`, et une valeur nulle marque la fin de l'histoire.
 **La recherche catalogue lit aussi les descriptions.** Une compilation citant un
 nom se classe à côté des disques de cette personne. Vérifiez `creator` avant
 d'attribuer un résultat.
+
+**Un tri par date n'est pas une chronologie.** `oldest` et `newest` classent
+`search_items` sur la date saisie par le déposant. Un élément dont l'Archive ne
+détient aucune date porte une valeur de remplissage au tout début du calendrier,
+que l'index trie comme une vraie date : ces tris commencent donc par les lignes
+dont `year` est nul. Le champ ne porte pas non plus d'ère, si bien qu'une
+tablette d'argile de 1744 av. J.-C. est classée en 1744. Toute réponse ainsi
+triée dit sur quoi repose l'ordre et compte les lignes de la page sans année.
 
 **Le texte numérisé est lu par une machine.** Les extraits en portent les
 fautes. Citez-les comme tels et suivez le lien.

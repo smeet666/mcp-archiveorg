@@ -1,5 +1,30 @@
 # Changelog
 
+## 1.4.0
+
+- Ordering a catalogue search by `oldest` or `newest` produced an answer whose
+  leading rows carried no date at all. The index files an item it holds no date
+  for under a stand-in at the very start of the calendar, which is smaller than
+  every real date and therefore heads an ascending order; the mirror holds for
+  `newest`, led by years typed centuries ahead. Nothing said so, and the first
+  row read as the oldest or newest thing the Archive holds. Both orders now
+  carry notes saying what the order ranks on, that the field carries a year and
+  no era so a date before the common era is filed as a year of it, and how many
+  rows on the page returned carry no year at all. Rows are returned in the
+  index's own order, unchanged: nothing is reordered, backfilled or filtered.
+- On `search_books`, a row's year describes the work while its identifiers
+  describe printings of it, so a work first published in 1459 can list a scan of
+  a translation from 1893. A date-ordered answer holding such a row now says so.
+- Text an uploader wrote as an HTML entity reached callers unread, so a title
+  deposited as `&Ecirc;tre libre avec Sartre` was returned that way. Named and
+  numeric entities are now decoded wherever text from a record is rendered:
+  titles, creators, descriptions, publishers, languages, book authors, subjects
+  and full-text excerpts. Identifiers, file names, dates and addresses are left
+  exactly as deposited, since those name things the Archive addresses by their
+  spelling. Decoding is single-pass, so `&amp;Ecirc;` yields `&Ecirc;` rather
+  than a letter nobody typed, and `AT&T` is untouched. A word optical
+  recognition misread is left as it was read.
+
 ## 1.3.0
 
 - An argument no tool declared was read and dropped, and the answer came back

@@ -31,6 +31,7 @@ import {
   itemUrl,
   snapshotUrl,
 } from "./paths.js";
+import { decodeEntities } from "./text.js";
 import { fromArchiveStamp } from "./urls.js";
 
 type Json = Record<string, unknown>;
@@ -50,6 +51,17 @@ function asStrings(value: unknown): string[] {
 }
 
 const asString = (value: unknown): string | null => asStrings(value)[0] ?? null;
+
+/**
+ * A field the source wrote as prose, read back from any escaping it carries.
+ *
+ * Identifiers, file names, dates and addresses go through `asString` instead:
+ * they name something the Archive addresses by that exact spelling, and reading
+ * an escape in one would point at a thing that does not exist.
+ */
+const sourceTexts = (value: unknown): string[] => asStrings(value).map(decodeEntities);
+
+const sourceText = (value: unknown): string | null => sourceTexts(value)[0] ?? null;
 
 function asNumber(value: unknown): number | null {
   if (typeof value === "number" && Number.isFinite(value)) return value;
@@ -160,8 +172,8 @@ export function toSearchResults(
     }
     items.push({
       identifier,
-      title: asString(fields[HIT_FIELD.title]),
-      creator: asStrings(fields[HIT_FIELD.creator]).join(", ") || null,
+      title: sourceText(fields[HIT_FIELD.title]),
+      creator: sourceTexts(fields[HIT_FIELD.creator]).join(", ") || null,
       year: asYear(fields[HIT_FIELD.year] ?? fields[HIT_FIELD.date]),
       mediaType: asString(fields[HIT_FIELD.mediaType]),
       downloads: asNumber(fields[HIT_FIELD.downloads]),
@@ -205,15 +217,15 @@ export function toInsideResults(
     }
     const highlight = asObject(row.highlight);
     const excerpts = highlight
-      ? asStrings(highlight.text).map((t) => stripHighlightMarkers(t).replace(/\s+/g, " ").trim())
+      ? sourceTexts(highlight.text).map((t) => stripHighlightMarkers(t).replace(/\s+/g, " ").trim())
       : [];
     // A bundled item carries several documents, and the title, creator and
     // year on the hit describe the item rather than the one that matched.
     const insideContainer = fields[HIT_FIELD.inSubfile] === true;
     found.push({
       identifier,
-      title: asString(fields[HIT_FIELD.title]),
-      creator: asStrings(fields[HIT_FIELD.creator]).join(", ") || null,
+      title: sourceText(fields[HIT_FIELD.title]),
+      creator: sourceTexts(fields[HIT_FIELD.creator]).join(", ") || null,
       year: asYear(fields[HIT_FIELD.year] ?? fields[HIT_FIELD.date]),
       matchedFile: insideContainer ? asString(fields[HIT_FIELD.matchedFile]) : null,
       insideContainer,
@@ -268,16 +280,16 @@ export function toItemDetail(payload: unknown, identifier: string, url: string):
   return {
     identifier,
     isCollection: root.is_collection === true,
-    title: asString(metadata[META_FIELD.title]),
-    creator: asStrings(metadata[META_FIELD.creator]).join(", ") || null,
+    title: sourceText(metadata[META_FIELD.title]),
+    creator: sourceTexts(metadata[META_FIELD.creator]).join(", ") || null,
     year: asYear(metadata[META_FIELD.year] ?? metadata[META_FIELD.date]),
     mediaType: asString(metadata[META_FIELD.mediaType]),
     downloads: asNumber(metadata[META_FIELD.downloads]),
     sourceUrl: itemUrl(identifier),
-    description: asString(metadata[META_FIELD.description]),
+    description: sourceText(metadata[META_FIELD.description]),
     date: asString(metadata[META_FIELD.date]),
-    publisher: asStrings(metadata[META_FIELD.publisher]).join(", ") || null,
-    language: asStrings(metadata[META_FIELD.language]).join(", ") || null,
+    publisher: sourceTexts(metadata[META_FIELD.publisher]).join(", ") || null,
+    language: sourceTexts(metadata[META_FIELD.language]).join(", ") || null,
     collections: asStrings(metadata[META_FIELD.collection]),
     licenseUrl: asString(metadata[META_FIELD.licenseUrl]),
     fileCount: asNumber(root.files_count) ?? rawFiles.length,
@@ -441,7 +453,7 @@ export function toBooks(
   for (const entry of root.docs) {
     const doc = asObject(entry);
     const key = doc ? asString(doc[BOOK_FIELD.key]) : null;
-    const title = doc ? asString(doc[BOOK_FIELD.title]) : null;
+    const title = doc ? sourceText(doc[BOOK_FIELD.title]) : null;
     if (!doc || !key || !title) {
       skipped += 1;
       continue;
@@ -449,12 +461,12 @@ export function toBooks(
     books.push({
       key,
       title,
-      authors: asStrings(doc[BOOK_FIELD.authors]),
+      authors: sourceTexts(doc[BOOK_FIELD.authors]),
       firstPublishedYear: asYear(doc[BOOK_FIELD.firstYear]),
       editionCount: asNumber(doc[BOOK_FIELD.editions]),
       archiveIdentifiers: asStrings(doc[BOOK_FIELD.scans]),
       pageCount: asNumber(doc[BOOK_FIELD.pages]),
-      subjects: asStrings(doc[BOOK_FIELD.subjects]).slice(0, MOST_SUBJECTS),
+      subjects: sourceTexts(doc[BOOK_FIELD.subjects]).slice(0, MOST_SUBJECTS),
       sourceUrl: bookUrl(key),
     });
   }

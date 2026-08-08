@@ -23,7 +23,7 @@ export const searchBooksDescription = [
   "'sort' by rating or by readers answers 'what is worth reading', which relevance alone does not.",
   "'first_published_year' is the year Open Library derives from its edition records, and a reissue or a mistyped edition can put it centuries from the real date; 'newest' and 'oldest' rank on that field, so the rows carrying the doubtful years lead the order.",
   "Answers who wrote a book, when it first appeared and how many editions exist, which the item catalogue describes poorly because it holds one upload at a time.",
-  `'archive_identifiers' lists up to ${MOST_SCANS} scans of the work: pass one to get_item, or use it to read the book itself. 'scan_count' says how many the work has.`,
+  `'archive_identifiers' lists up to ${MOST_SCANS} scans of the work: pass one to get_item, or use it to read the book itself. 'scan_count' says how many the work has. A scan is one edition, and a work first printed centuries ago is often held only as a later reissue or a translation, so read the scan's own record before dating what it holds.`,
   "Use this to identify a work, and search_inside to find a phrase within one.",
 ].join(" ");
 
@@ -224,6 +224,15 @@ export async function runSearchBooks(
       notes.push(
         `Ordered on 'first_published_year', which Open Library takes from its edition records: a mistyped or loosely catalogued edition puts a work centuries from the date it appeared, and such a row leads this order. Check the year on each row against its source_url before calling it a first publication.`,
       );
+      // The year and the identifiers on a row answer two different questions:
+      // when the work first appeared, and which printings of it the Archive has
+      // scanned. Ranked by date, a row invites a caller to open the scan as the
+      // thing of that year, and the scan can be a translation of any later one.
+      if (books.some((book) => book.first_published_year !== null && book.scan_count > 0)) {
+        notes.push(
+          "'archive_identifiers' name scans of particular editions, which can be reissues or translations from centuries after the year beside them. Read a scan's own record with get_item before dating what it holds.",
+        );
+      }
     }
     if (books.length > 0 && args.query) {
       notes.push(
