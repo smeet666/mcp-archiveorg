@@ -29,9 +29,10 @@ import {
   bookUrl,
   downloadUrl,
   itemUrl,
+  capturedAddress,
   snapshotUrl,
 } from "./paths.js";
-import { decodeEntities } from "./text.js";
+import { decodeEntities, readProse } from "./text.js";
 import { fromArchiveStamp } from "./urls.js";
 
 type Json = Record<string, unknown>;
@@ -59,9 +60,40 @@ const asString = (value: unknown): string | null => asStrings(value)[0] ?? null;
  * they name something the Archive addresses by that exact spelling, and reading
  * an escape in one would point at a thing that does not exist.
  */
-const sourceTexts = (value: unknown): string[] => asStrings(value).map(decodeEntities);
+const sourceTexts = (value: unknown): string[] =>
+  asStrings(value)
+    .map((text) => decodeEntities(text).trim())
+    .filter((text) => text !== "");
 
-const sourceText = (value: unknown): string | null => sourceTexts(value)[0] ?? null;
+/**
+ * A field the Archive's deposit forms accept markup in, read as text.
+ *
+ * Titles and descriptions come back carrying tags, and a field typed as a
+ * string in this server's schemas is read as text by whoever receives it. The
+ * markup is therefore read rather than passed on, which is the same decision as
+ * reading an escape back to the character it stands for.
+ */
+const proseText = (value: unknown): string | null => {
+  const raw = asString(value);
+  if (raw === null) return null;
+  const read = readProse(raw);
+  return read === "" ? null : read;
+};
+
+/**
+ * The title as the record files it, kept only where reading it changed it.
+ *
+ * The catalogue matches the text as filed, so a record spelling a character
+ * out as an escape answers a search for the escape's own name, and a record
+ * carrying markup answers a search for a tag. The title handed back holds what
+ * that text stands for, which leaves nothing on the row to show why it is in
+ * the list. Null where the two are the same string, since a copy of the title
+ * under a second name is weight without information.
+ */
+function filedAs(value: unknown, read: string | null): string | null {
+  const raw = asString(value);
+  return raw === null || raw === read ? null : raw;
+}
 
 function asNumber(value: unknown): number | null {
   if (typeof value === "number" && Number.isFinite(value)) return value;
@@ -170,9 +202,11 @@ export function toSearchResults(
       skipped += 1;
       continue;
     }
+    const title = proseText(fields[HIT_FIELD.title]);
     items.push({
       identifier,
-      title: sourceText(fields[HIT_FIELD.title]),
+      title,
+      titleAsFiled: filedAs(fields[HIT_FIELD.title], title),
       creator: sourceTexts(fields[HIT_FIELD.creator]).join(", ") || null,
       year: asYear(fields[HIT_FIELD.year] ?? fields[HIT_FIELD.date]),
       mediaType: asString(fields[HIT_FIELD.mediaType]),
@@ -224,7 +258,7 @@ export function toInsideResults(
     const insideContainer = fields[HIT_FIELD.inSubfile] === true;
     found.push({
       identifier,
-      title: sourceText(fields[HIT_FIELD.title]),
+      title: proseText(fields[HIT_FIELD.title]),
       creator: sourceTexts(fields[HIT_FIELD.creator]).join(", ") || null,
       year: asYear(fields[HIT_FIELD.year] ?? fields[HIT_FIELD.date]),
       matchedFile: insideContainer ? asString(fields[HIT_FIELD.matchedFile]) : null,
@@ -245,6 +279,34 @@ export function toItemDetail(payload: unknown, identifier: string, url: string):
   const root = asObject(payload);
   if (!root) throw parseFailure("The item answer was not an object.", { url });
 
+  /**
+   * The Archive addresses an item by the exact spelling of its identifier, and
+   * an absence that does not say so reads as the item not existing at all.
+   */
+  const noSuchItem = (): never => {
+    const lowered = identifier.toLowerCase();
+    throw notFound(`The Internet Archive has no item called "${identifier}".`, {
+      url,
+      ...(lowered === identifier
+        ? {}
+        : {
+            hint: `An identifier is matched exactly, capitals included. Most items are addressed in lower case, so "${lowered}" may be the same item.`,
+          }),
+    });
+  };
+
+  // The route states a failure of its own in an `error` field, which is a
+  // service that answered rather than an item that is missing. Repeating what
+  // it said is what names the cause; an absence here would be an absence the
+  // Archive never confirmed.
+  const stated = asString(root.error);
+  if (stated !== null) {
+    throw parseFailure(
+      `The record for "${identifier}" came back as an error of the Archive's own: ${stated}`,
+      { url },
+    );
+  }
+
   // An identifier that does not exist answers with an empty document rather
   // than an error status, so emptiness is what "no such item" looks like here.
   const metadata = asObject(root.metadata);
@@ -252,17 +314,13 @@ export function toItemDetail(payload: unknown, identifier: string, url: string):
   // something this parser cannot read is a failure to read, and reporting it as
   // an absence would state that the Archive holds nothing under this name.
   if (metadata === null) {
-    if (Object.keys(root).length === 0) {
-      throw notFound(`The Internet Archive has no item called "${identifier}".`, { url });
-    }
+    if (Object.keys(root).length === 0) noSuchItem();
     throw parseFailure(
       `The record for "${identifier}" came back without the metadata block this server reads.`,
       { url },
     );
   }
-  if (Object.keys(metadata).length === 0) {
-    throw notFound(`The Internet Archive has no item called "${identifier}".`, { url });
-  }
+  if (Object.keys(metadata).length === 0) noSuchItem();
 
   const rawFiles = Array.isArray(root.files) ? root.files.map(asObject) : [];
   const files: ItemFile[] = [];
@@ -277,16 +335,19 @@ export function toItemDetail(payload: unknown, identifier: string, url: string):
     });
   }
 
+  const title = proseText(metadata[META_FIELD.title]);
+
   return {
     identifier,
     isCollection: root.is_collection === true,
-    title: sourceText(metadata[META_FIELD.title]),
+    title,
+    titleAsFiled: filedAs(metadata[META_FIELD.title], title),
     creator: sourceTexts(metadata[META_FIELD.creator]).join(", ") || null,
     year: asYear(metadata[META_FIELD.year] ?? metadata[META_FIELD.date]),
     mediaType: asString(metadata[META_FIELD.mediaType]),
     downloads: asNumber(metadata[META_FIELD.downloads]),
     sourceUrl: itemUrl(identifier),
-    description: sourceText(metadata[META_FIELD.description]),
+    description: proseText(metadata[META_FIELD.description]),
     date: asString(metadata[META_FIELD.date]),
     publisher: sourceTexts(metadata[META_FIELD.publisher]).join(", ") || null,
     language: sourceTexts(metadata[META_FIELD.language]).join(", ") || null,
@@ -297,6 +358,18 @@ export function toItemDetail(payload: unknown, identifier: string, url: string):
     files,
     raw: metadata,
   };
+}
+
+/**
+ * Whole days between two instants, as a distance.
+ *
+ * The part of a day that does not complete one is not a day. A date given
+ * without a time names the first instant of that day, so a capture taken in the
+ * evening of the day asked about sits hours away and no whole day separates the
+ * two; rounding that up reports a distance to a day the caller never named.
+ */
+export function wholeDaysBetween(one: Date, other: Date): number {
+  return Math.floor(Math.abs(one.getTime() - other.getTime()) / 86_400_000);
 }
 
 export function toNearestSnapshot(
@@ -323,17 +396,18 @@ export function toNearestSnapshot(
   }
 
   const status = asNumber(closest.status);
+  const captureUrl = asString(closest.url) ?? snapshotUrl(stamp, target);
   return {
     capturedAt: capturedAt.toISOString(),
-    url: asString(closest.url) ?? snapshotUrl(stamp, target),
+    url: captureUrl,
     status,
+    // The lookup resolves across the address forms the index holds, so the
+    // capture can be of a neighbour of the address that was asked about.
+    address: capturedAddress(captureUrl) ?? target,
     // Stated in days, because "the closest capture" to 2005 can be 2019 and
     // presenting that as the answer without the gap is how a model states a
     // date it never checked.
-    daysFromRequested:
-      requestedAt === null
-        ? null
-        : Math.round(Math.abs(capturedAt.getTime() - requestedAt.getTime()) / 86_400_000),
+    daysFromRequested: requestedAt === null ? null : wholeDaysBetween(capturedAt, requestedAt),
   };
 }
 
@@ -405,10 +479,12 @@ export function toSnapshotHistory(
       continue;
     }
     const status = at(row, "statuscode");
+    const original = at(row, "original") ?? target;
     const snapshot: Snapshot = {
       capturedAt: when.toISOString(),
-      url: snapshotUrl(stamp, at(row, "original") ?? target),
+      url: snapshotUrl(stamp, original),
       status: status === null ? null : (asNumber(status) ?? null),
+      address: original,
     };
     // The index can hold more than one row for a single visit, identical to the
     // second and pointing at the same capture. Two of them read as two visits
@@ -453,7 +529,7 @@ export function toBooks(
   for (const entry of root.docs) {
     const doc = asObject(entry);
     const key = doc ? asString(doc[BOOK_FIELD.key]) : null;
-    const title = doc ? sourceText(doc[BOOK_FIELD.title]) : null;
+    const title = doc ? proseText(doc[BOOK_FIELD.title]) : null;
     if (!doc || !key || !title) {
       skipped += 1;
       continue;

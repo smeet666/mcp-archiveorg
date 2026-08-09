@@ -137,4 +137,15 @@ export const downloadUrl = (identifier: string, file: string) =>
 export const snapshotUrl = (timestamp: string, url: string) =>
   `${HOST.wayback}/web/${timestamp}/${url}`;
 
+/**
+ * The address a capture is of, read back out of the Wayback address that opens
+ * it. The stamp can carry a two-letter flag such as `id_`, which belongs to the
+ * capture rather than to the address. Null when the address is not of that
+ * shape, which leaves the caller to say what it knows instead of guessing.
+ */
+export const capturedAddress = (waybackUrl: string): string | null => {
+  const match = /\/web\/\d{4,14}[a-z_]*\/(.+)$/.exec(waybackUrl);
+  return match ? match[1]! : null;
+};
+
 export const bookUrl = (key: string) => `${HOST.openLibrary}${key}`;

@@ -37,6 +37,26 @@ describe("what search_inside says it returns", () => {
   it("warns that a title may describe the container rather than the match", () => {
     expect(searchInsideDescription).toMatch(/inside|bundl|container/i);
   });
+
+  it("does not promise that quoting matches the spelling that was typed", () => {
+    // The index folds accents, case and punctuation before it matches, so a
+    // quoted "bûcher" comes back on pages carrying Bücher and Bucher. A
+    // description promising a phrase matched whole sends a caller to quote a
+    // word the page does not print.
+    expect(
+      searchInsideDescription,
+      "quoting fixes the order of the words and not their letters",
+    ).not.toMatch(/match it whole|matches? the phrase whole|exactly as (written|typed)/i);
+  });
+
+  it("says what quoting does do, since a caller reaches for it to be precise", () => {
+    expect(searchInsideDescription, "quoting holds the words in the order given").toMatch(
+      /in that order|one after another|in the order/i,
+    );
+    expect(searchInsideDescription, "and the index folds the spelling before matching").toMatch(
+      /accent|diacritic|fold/i,
+    );
+  });
 });
 
 describe("what list_snapshots says the dates mean", () => {

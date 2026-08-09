@@ -1,5 +1,142 @@
 # Changelog
 
+## 1.5.0
+
+- `search_items` could not find `AT&T`, `R&D` or `M&Ms`: the catalogue's query
+  parser refuses an ampersand written against a word, and the refusal came back
+  as an invitation to check quotation marks and brackets the query did not
+  carry. The index folds punctuation before it matches, so such a term now
+  reaches it written with a space and held together by quotes, which returns the
+  records printing the ampersand; the answer names the term as it was sent. An
+  ampersand standing alone between spaces, and the doubled one the index reads
+  as AND, are left as they were written.
+- One hint about query syntax was attached to every request the Archive refused,
+  including those of `get_item`, `get_snapshot` and `list_snapshots`, which send
+  no query at all. A refusal now names what the request actually carried: the
+  words of a search, the identifier of an item, or the web address of a capture
+  lookup.
+- `get_item` answered a full address or a path with `parse_failure` and an
+  invitation to open a bug report, dressing a typing mistake as a fault of the
+  server. The metadata route reads what it is handed up to the first slash, so
+  `https://archive.org/details/nasa` arrived as a request for an item called
+  `https:`. Such a value is now refused as an argument, and the refusal hands
+  back the identifier sitting inside it. A record the Archive answers with an
+  error of its own repeats what it said instead of blaming the shape.
+- `get_snapshot` reported a value that names no web address as an address the
+  Wayback Machine never captured, in the same words as a genuine miss. A value
+  with no host in it is refused, because looking it up produces an empty answer
+  in the shape of an absence.
+- `days_from_requested` reported 1 for a capture taken on the day asked about
+  and 0 for one an hour away, because a date with no time names the first
+  instant of that day and the part-day was rounded up. The gap is counted in
+  whole days, so a capture from the evening of the day named is 0.
+- `search_books` returned, in its `query` field, a value the caller never sent:
+  a search by `subject` came back as `subject "grief"`, wrapped in the quotation
+  marks this server publishes as the way to ask for a phrase, beside a note
+  about free text being matched loosely. `query` now holds the caller's own
+  words, or null when the search was made of criteria alone, and `searched_for`
+  states in words what the answer answers.
+- Entities were read back inside fields that kept their HTML tags, so `title`
+  and `description` were neither the markup the record carries nor the text
+  their schema promises. Both are read as text: the elements a deposit form
+  produces are resolved, the ones ending a line become one, and a bracketed word
+  that is not an element, such as `the <unknown> author`, stands as written.
+- `search_inside` advised asking for page 101 while its own schema stops at 100.
+  An answer sitting on the last page says that paging stops there and that the
+  matches beyond it are reached by narrowing the words.
+- `get_item` forgave the space around an identifier without a word and refused a
+  capital without one. The trimming is now stated in a note, and an identifier
+  carrying capitals that finds nothing says that identifiers are matched exactly
+  and names the lower-case spelling.
+- `get_snapshot` reported an address as never captured when only the date it was
+  asked about came back empty: `example.com` at `2013-07-30` answered "the
+  Wayback Machine holds no capture of example.com", while the same call carrying
+  a time returned a capture from that very day. A date is a restriction on the
+  lookup, so an empty answer under it is set aside and the address is asked about
+  on its own; the answer says the date was dropped and how far the capture it
+  found sits from it. An address the index holds nothing for at all is still an
+  absence, in those words. The same tool accepted `2020-02-30`, rolled it to 29
+  February and reported a capture as "0 day(s) from the date asked for" for a day
+  the calendar does not have; such a day is now refused.
+- `get_snapshot` answered about a different address from the one asked for:
+  `http://invalid@example.com/` and `http://www.example.com/` both returned a
+  capture of `http://example.com/`, headed under the wording the caller typed.
+  The Wayback Machine keeps those forms as separate addresses with separate
+  histories, so every capture now carries the `address` it is of, and an answer
+  resolved to a neighbour says so rather than presenting it as the address that
+  was asked about. A port the scheme implies names the same address, so an early
+  capture written `http://example.com:80/` raises nothing. An address carrying a
+  line break or a tab is refused, instead of being trimmed on the way out and
+  answered with a capture of whatever survived.
+- `list_snapshots` merged captures of several addresses under one heading, which
+  made its own note about collapsed captures false: consecutive rows differed
+  because they were different addresses, not because the page had changed. Each
+  row now names the address it captured, and an answer covering more than one
+  says how many, so a count of the rows is not read as a count of captures of any
+  single address.
+- `search_books` said nothing at all about an answer holding no work, so a
+  language code Open Library does not use read as the catalogue holding no
+  Sartre. An empty answer now says the criteria hold at once and that one value
+  the catalogue does not use empties it, names the three-letter codes the
+  language field is matched against, and states that free text reads titles and
+  authors alone.
+- `search_items` past the last page of a match set stated that the catalogue held
+  nothing, contradicted by its own note counting the matches. A page holding no
+  row while the search matched some now says where it sits, how many pages the
+  matches fill, and that the rows are on the pages before it. The same holds for
+  `search_books`. A search that genuinely matched nothing still says so.
+- A year range on `search_items` filters the catalogue's declared date, the same
+  field the date orders rank, and that field carries no era: a range of 1700 to
+  1750 answers with Babylonian tablets of 1712 and 1726 BCE, filed as years of
+  the common era. A range of 1 to 100 answers with rows whose year is
+  unreadable, every one of them. An answer holding a range now says which field
+  was filtered, that the field carries no era, and how many of the rows shown
+  carry no year this server could read. The caveats travel with an answer
+  resting on that field, by a range or by an order, and with no other.
+- The note explaining why a row heads the `oldest` order named a single cause,
+  an undated item's placeholder, on rows that carry a date. `BIUSante_ms02045`
+  is deposited with the date `15` for a fifteenth-century manuscript and the
+  index files it at the year 15. The note now names both causes, the placeholder
+  and the date read as a fragment, and attributes neither to a particular row.
+- `search_inside` described double quotes as matching a phrase whole. Quoting
+  holds the words together and in the order given; the index folds accents, case
+  and punctuation before it matches, so `"bûcher"` answers with pages printing
+  `Bücher` and `Bucher`. The description states what quoting does and what it
+  leaves to the index.
+- The caveat about the date field carrying no era rode on every answer resting
+  on that field, including a range of 2020 to 2024 whose rows are deposits made
+  as the Archive collected them. It now travels where a year can be read two
+  ways, which is a range or a row reaching back before the Archive began taking
+  deposits.
+- The explanation of what heads the `oldest` order, a placeholder date and a
+  date read as a fragment, appeared on pages where every row carries a year,
+  such as page 40 of a deep result. It now travels with the rows it describes,
+  which are the rows this server reads no year on; the order still says which
+  field it ranks and who filled it in.
+- A title filed with its characters written as escapes came back padded with the
+  spaces those escapes stand for, so `Mahakavi Akbar &nbsp;&nbsp;` read as a
+  title cut short. Such a value now ends where its words end. A search matching
+  such a record matches the text as filed, so the words searched for can be
+  absent from every field shown: an answer holding such a row says so, and names
+  escapes and markup as where those words live.
+- `media_type` on a catalogue row was described as one of texts, movies, audio,
+  image, software or data, and a search for a collection fills every row with
+  `collection`, which the filter cannot ask for. The field is described as the
+  kind the catalogue files a row under, naming the common values and the kinds
+  outside them.
+- Escaped characters were read back only in the exact case the table holds, so
+  `&Amp;` reached a caller as five characters. A name is now read back in any
+  case where the table holds a single character under it, and left standing
+  where case is what picks the character, as it is between `&Egrave;` and
+  `&egrave;`.
+- A full-text search matching nothing advised matching the words separately,
+  without quotes, on queries carrying none: advice to undo something already so.
+  That advice now goes to a quoted query alone, and an unquoted one is told its
+  words were matched separately.
+- Counts and the words around them disagreed on one: `1 of 1 items`, `4521 works
+match and 1 are shown`, `1 work(s) here hold more`. A count now agrees with its
+  noun and its verb.
+
 ## 1.4.0
 
 - Ordering a catalogue search by `oldest` or `newest` produced an answer whose

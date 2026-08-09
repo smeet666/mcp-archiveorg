@@ -99,8 +99,24 @@ actually holds the passage.
 ## Other things worth knowing
 
 **A capture is rarely on the date you asked for.** `get_snapshot` always
-reports `days_from_requested`, because the closest capture of a quiet site can
-be years away. A page asked for in March 1994 can answer with December 1996.
+reports `days_from_requested`, counted as whole days from the moment asked
+about, so a capture taken later on the day you named is 0. The closest capture
+of a quiet site can be years away. A page asked for in March 1994 can answer with December 1996. A
+date that came back with nothing is set aside and the address is looked up on
+its own, which is said in a note: an address with no capture near a date is a
+different thing from an address the Wayback Machine never captured.
+
+**An ampersand written against a word travels as a space.** The catalogue's
+query parser refuses `AT&T` outright, and its index folds punctuation before it
+matches, so `search_items` sends the term as the phrase `"AT T"` and says so in
+a note. The rows are the ones printing the ampersand.
+
+**One site sits in the index under several addresses.** Its `www` form, its
+`https` form and a form carrying credentials are separate addresses with
+separate histories, and a lookup for one answers with a capture of another.
+Every capture carries the `address` it is of. `list_snapshots` says when its
+rows cover more than one, because counting them then counts captures of all of
+them together.
 
 **The capture index is slow, and it has no offset.** Tens of seconds on a busy
 address, and it ignores an offset entirely. It pages by a key it hands back:
@@ -110,13 +126,20 @@ pass `next_cursor` as `cursor`, and a null one means the end of the history.
 mention a name ranks alongside that person's own work. Read `creator` before
 attributing a result.
 
-**Ordering by date is not a chronology.** `oldest` and `newest` rank
-`search_items` on the date whoever deposited an item typed into the record. An
-item the Archive holds no date for carries a placeholder at the start of the
-calendar, and the index sorts that placeholder as a real date, so those orders
-lead with rows whose `year` is null. The field also carries no era, so a clay
-tablet made in 1744 BCE is filed as 1744. Every answer ordered that way says
-what the order rests on, and counts the rows on the page that carry no year.
+**A date on a catalogue row is one field, and it is not a chronology.**
+`oldest`, `newest`, `year_from` and `year_to` all read the date whoever
+deposited an item typed into the record. An item the Archive holds no date for
+carries a placeholder at the start of the calendar, a date written as a
+fragment is filed at the year that fragment reads as, and the field carries no
+era, so a clay tablet made in 1712 BCE answers a range of 1700 to 1750. Every
+answer ranked or filtered on that field says so, and counts the rows on the
+page carrying no year this server could read.
+
+**Quoting holds the word order, not the spelling.** A quoted phrase comes back
+with its words together and in the order given. The index folds accents, case
+and punctuation before it matches, so `"bûcher"` also answers with pages
+printing `Bücher` and `Bucher`. Read an excerpt before repeating a quoted query
+as the spelling a page carries.
 
 **Scanned text is machine-read.** Excerpts carry the misreadings that come with
 it. Quote them as scanned text and follow the link.
@@ -161,6 +184,11 @@ the thing you asked for is missing.
 
 **`invalid_input` on a search.** The query was refused rather than answered.
 An unbalanced quotation mark, bracket or colon is read as an operator.
+
+**`invalid_input` on an identifier or an address.** `get_item` takes the last
+part of an item's address, such as `nasa`, and matches it exactly, capitals
+included; the capture tools take a web address. A value that is neither is
+refused, because looking it up would come back as an absence.
 
 **`parse_failure`.** A response arrived in a shape this server cannot read,
 which usually means a route changed. Please
@@ -301,8 +329,24 @@ porte réellement le passage.
 ## Autres points utiles
 
 **Une capture tombe rarement sur la date demandée.** `get_snapshot` annonce
-toujours `days_from_requested` : la capture la plus proche d'un site peu visité
-peut être à des années.
+toujours `days_from_requested`, compté en jours entiers depuis l'instant
+demandé : une capture prise plus tard dans la journée nommée vaut 0. La capture
+la plus proche d'un site peu visité peut être à des années. Une date qui ne ramène rien est écartée et l'adresse est
+interrogée seule, ce qu'une note signale : une adresse sans capture près d'une
+date n'est pas une adresse jamais capturée.
+
+**Une esperluette collée à un mot voyage comme une espace.** L'analyseur de
+requêtes du catalogue refuse `AT&T` tel quel, et son index replie la ponctuation
+avant de comparer : `search_items` envoie donc le terme sous la forme de
+l'expression `"AT T"` et le signale dans une note. Les lignes trouvées sont bien
+celles qui écrivent l'esperluette.
+
+**Un même site occupe plusieurs adresses dans l'index.** Sa forme `www`, sa
+forme `https` et une forme portant des identifiants sont des adresses distinctes
+aux histoires distinctes, et une recherche sur l'une répond par une capture
+d'une autre. Chaque capture porte l'`address` qu'elle représente, et
+`list_snapshots` signale quand ses lignes en couvrent plusieurs : les compter
+revient alors à compter les captures de toutes à la fois.
 
 **L'index des captures est lent, et n'a pas d'offset.** Il l'ignore
 complètement. Il se parcourt avec la clé qu'il renvoie : repassez `next_cursor`
@@ -312,13 +356,20 @@ en `cursor`, et une valeur nulle marque la fin de l'histoire.
 nom se classe à côté des disques de cette personne. Vérifiez `creator` avant
 d'attribuer un résultat.
 
-**Un tri par date n'est pas une chronologie.** `oldest` et `newest` classent
-`search_items` sur la date saisie par le déposant. Un élément dont l'Archive ne
-détient aucune date porte une valeur de remplissage au tout début du calendrier,
-que l'index trie comme une vraie date : ces tris commencent donc par les lignes
-dont `year` est nul. Le champ ne porte pas non plus d'ère, si bien qu'une
-tablette d'argile de 1744 av. J.-C. est classée en 1744. Toute réponse ainsi
-triée dit sur quoi repose l'ordre et compte les lignes de la page sans année.
+**La date d'une ligne de catalogue est un champ, et ce champ n'est pas une
+chronologie.** `oldest`, `newest`, `year_from` et `year_to` lisent tous la date
+saisie par le déposant. Un élément dont l'Archive ne détient aucune date porte
+une valeur de remplissage au tout début du calendrier, une date écrite en
+fragment est classée à l'année que ce fragment donne à lire, et le champ ne
+porte pas d'ère : une tablette d'argile de 1712 av. J.-C. répond donc à un
+intervalle 1700-1750. Toute réponse triée ou filtrée sur ce champ le dit, et
+compte les lignes de la page dont l'année est illisible pour ce serveur.
+
+**Les guillemets tiennent l'ordre des mots, pas leur graphie.** Une phrase entre
+guillemets revient avec ses mots groupés et dans l'ordre donné. L'index replie
+les accents, la casse et la ponctuation avant de comparer : `"bûcher"` répond
+donc aussi avec des pages portant `Bücher` et `Bucher`. Lisez un extrait avant
+de reprendre une requête entre guillemets comme la graphie qu'une page porte.
 
 **Le texte numérisé est lu par une machine.** Les extraits en portent les
 fautes. Citez-les comme tels et suivez le lien.
@@ -365,6 +416,12 @@ jamais que ce que vous cherchez est absent.
 **`invalid_input` sur une recherche.** La requête a été refusée, pas répondue.
 Un guillemet, un crochet ou un deux-points non équilibré est lu comme un
 opérateur.
+
+**`invalid_input` sur un identifiant ou une adresse.** `get_item` prend la
+dernière partie de l'adresse d'un document, par exemple `nasa`, et la compare
+exactement, majuscules comprises ; les outils de capture prennent une adresse
+web. Une valeur qui n'est ni l'un ni l'autre est refusée : l'interroger
+reviendrait à annoncer une absence.
 
 **`parse_failure`.** Une réponse est arrivée dans une forme illisible pour ce
 serveur, ce qui signale en général qu'une route a changé. Merci

@@ -9,6 +9,7 @@
 
 import { z } from "zod";
 import type { ArchiveClient } from "../ia/client.js";
+import { invalidInput } from "../errors.js";
 import { strictInput } from "./arguments.js";
 import { itemSummarySchema, ok, toToolError, truncate } from "./shared.js";
 import type { ToolResult } from "./shared.js";
@@ -24,7 +25,13 @@ export const getItemDescription = [
 ].join(" ");
 
 export const getItemInput = strictInput({
-  identifier: z.string().min(1).max(200).describe("Archive identifier, such as 'nasa'."),
+  identifier: z
+    .string()
+    .min(1)
+    .max(200)
+    .describe(
+      "Archive identifier, such as 'nasa'. It is the last part of an item's address rather than the address itself, and it is matched exactly, capitals included.",
+    ),
   sections: z
     .array(z.enum(SECTIONS))
     .default(["basic"])
@@ -69,12 +76,57 @@ export const getItemOutput = z.object({
 
 export type GetItemArgs = z.infer<typeof getItemInput>;
 
+/**
+ * An identifier as the caller wrote it, refused when the value is an address.
+ *
+ * The metadata route reads what it is handed up to the first slash, so a full
+ * address arrives as a request for an item called "https:" and a path as one
+ * called "details". Both come back unreadable, and reporting that as a shape
+ * this server cannot read blames the Archive for a mistake in the call. The
+ * spelling that would work sits inside the value, so the refusal hands it back.
+ */
+function readIdentifier(value: string): { identifier: string; spaceRemoved: boolean } {
+  const identifier = value.trim();
+  if (identifier === "") {
+    throw invalidInput(
+      "An item identifier is required, and this one is empty.",
+      "Pass an Archive identifier, such as 'nasa'.",
+    );
+  }
+
+  const address = /^[a-z][a-z0-9+.-]*:\/\//i.test(identifier) || identifier.includes("/");
+  if (address || /[?#\s]/.test(identifier)) {
+    const last =
+      identifier
+        .split(/[?#]/)[0]!
+        .split("/")
+        .filter((part) => part !== "")
+        .pop() ?? "";
+    throw invalidInput(
+      `"${identifier}" is a web address, not an Archive identifier.`,
+      last === "" || last === identifier
+        ? "An identifier is the last part of an item's address, such as 'nasa' in 'https://archive.org/details/nasa'."
+        : `An identifier is the last part of an item's address, so pass '${last}'.`,
+    );
+  }
+
+  return { identifier, spaceRemoved: identifier !== value };
+}
+
 export async function runGetItem(client: ArchiveClient, args: GetItemArgs): Promise<ToolResult> {
   try {
     const wanted = new Set(args.sections);
-    const { data, cached } = await client.getItem(args.identifier);
+    const { identifier, spaceRemoved } = readIdentifier(args.identifier);
+    const { data, cached } = await client.getItem(identifier);
     const notes: string[] = [];
     if (cached) notes.push("Served from this server's short-lived in-memory cache.");
+    if (spaceRemoved) {
+      // An identifier is matched exactly, so a caller who is not told that the
+      // space was set aside keeps the padded form for every later call.
+      notes.push(
+        `The identifier was read as "${identifier}": the space around the value given is not part of it.`,
+      );
+    }
 
     const structured: Record<string, unknown> = {
       item: {

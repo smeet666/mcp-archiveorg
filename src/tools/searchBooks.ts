@@ -12,7 +12,7 @@ import type { ArchiveClient } from "../ia/client.js";
 import { invalidInput } from "../errors.js";
 import { MOST_SCANS } from "../ia/paths.js";
 import { strictInput } from "./arguments.js";
-import { ok, toToolError } from "./shared.js";
+import { MOST_PAGES, agreeing, counted, ok, pastLastPage, toToolError } from "./shared.js";
 import type { ToolResult } from "./shared.js";
 
 export const searchBooksDescription = [
@@ -83,11 +83,19 @@ export const searchBooksInput = strictInput({
       "'rating' is how readers scored it, 'readers' is how many recorded reading it, and both answer a question relevance cannot. 'newest' and 'oldest' rank on 'first_published_year', which the index takes from edition records: read that field on each row against the work's page before repeating it.",
     ),
   limit: z.number().int().min(1).max(50).default(10),
-  page: z.number().int().min(1).max(100).default(1),
+  page: z.number().int().min(1).max(MOST_PAGES).default(1),
 });
 
 export const searchBooksOutput = z.object({
-  query: z.string().describe("What was searched for, criteria included."),
+  query: z
+    .string()
+    .nullable()
+    .describe(
+      "The free text the caller sent, as it was sent. Null when the search was made of criteria alone.",
+    ),
+  searched_for: z
+    .string()
+    .describe("What this answer answers, in words: the free text and every criterion applied."),
   total: z.number().int().describe("Works matching, not the number returned."),
   page: z.number().int(),
   books: z.array(
@@ -201,8 +209,33 @@ export async function runSearchBooks(
       source_url: book.sourceUrl,
     }));
 
+    const outOfRange = pastLastPage(data.total, args.limit, args.page);
+    if (outOfRange) notes.push(outOfRange);
+
+    // An answer holding no work is an answer about where this search looked.
+    // Every criterion given has to hold at once, so one value the catalogue
+    // does not use empties the result, and the emptiness on its own reads as a
+    // statement about what Open Library holds.
+    if (books.length === 0 && !outOfRange) {
+      notes.push(
+        `Nothing matched ${asked}. The criteria given hold at once, so a single value Open Library does not use empties the answer, which is a different thing from the catalogue holding nothing under the others.`,
+      );
+      if (args.language) {
+        notes.push(
+          "'language' is matched against Open Library's own three-letter codes, such as 'eng' or 'fre'. A code outside that set matches no work at all.",
+        );
+      }
+      if (args.query) {
+        notes.push(
+          `Free text here reads titles and authors, so a work Open Library catalogues under a wording other than the one given (${args.query}) is not ruled out by this answer.`,
+        );
+      }
+    }
+
     if (data.total > books.length) {
-      notes.push(`${data.total} works match and ${books.length} are shown.`);
+      notes.push(
+        `${counted(data.total, "work")} ${agreeing(data.total, "matches", "match")} and ${books.length} ${agreeing(books.length, "is", "are")} shown.`,
+      );
     }
     if (books.length > 0 && books.every((book) => book.scan_count === 0)) {
       notes.push(
@@ -216,7 +249,7 @@ export async function runSearchBooks(
         book.scan_count > most.scan_count ? book : most,
       );
       notes.push(
-        `Scans are listed ${MOST_SCANS} per work, and ${trimmed.length} work(s) here hold more, up to ${richest.scan_count} on "${richest.title}". Read 'scan_count' for what a work holds, and its page on Open Library for the identifiers not listed.`,
+        `Scans are listed ${MOST_SCANS} per work, and ${counted(trimmed.length, "work")} here ${agreeing(trimmed.length, "holds", "hold")} more, up to ${richest.scan_count} on "${richest.title}". Read 'scan_count' for what a work holds, and its page on Open Library for the identifiers not listed.`,
       );
     }
 
@@ -236,14 +269,16 @@ export async function runSearchBooks(
     }
     if (books.length > 0 && args.query) {
       notes.push(
-        `Free text matches parts of words and reads titles and authors together, so "${args.query}" also finds works by authors whose name merely contains it. Read 'authors' on each row before treating a result as that author's work.`,
+        `Free text matches parts of words and reads titles and authors together, so the words given (${args.query}) also find works by authors whose name merely contains them. Read 'authors' on each row before treating a result as that author's work.`,
       );
     }
 
     const body =
       books.length === 0
-        ? `No work found for ${asked}.`
-        : `${books.length} of ${data.total} works for ${asked}:\n` +
+        ? outOfRange
+          ? `No work on page ${args.page} for ${asked}, of ${counted(data.total, "work")} matching.`
+          : `No work found for ${asked}.`
+        : `${books.length} of ${counted(data.total, "work")} for ${asked}:\n` +
           books
             .map((book, index) => {
               const bits = [
@@ -258,9 +293,23 @@ export async function runSearchBooks(
             })
             .join("\n");
 
-    return ok({ query: asked, total: data.total, page: args.page, books, notes }, body, {
-      notes,
-    });
+    return ok(
+      {
+        // What the caller sent and what the search came to are two different
+        // statements, and a caller comparing one field against the arguments it
+        // passed must find its own words there rather than this server's.
+        query: args.query ?? null,
+        searched_for: asked,
+        total: data.total,
+        page: args.page,
+        books,
+        notes,
+      },
+      body,
+      {
+        notes,
+      },
+    );
   } catch (error) {
     return toToolError(error);
   }
@@ -272,14 +321,18 @@ export async function runSearchBooks(
  * A search by criteria has no free-text query to echo, and a result headed
  * `works for "undefined"` says nothing about what produced it. This names the
  * criteria instead, so the answer states its own question.
+ *
+ * Nothing here is wrapped in double quotes: those are the notation this server
+ * publishes for holding words together, and a value handed back inside them
+ * reads as a phrase the caller asked for.
  */
 function describeCriteria(args: SearchBooksArgs): string {
   const parts: string[] = [];
-  if (args.query) parts.push(`"${args.query}"`);
-  if (args.subject) parts.push(`subject "${args.subject}"`);
-  if (args.place) parts.push(`set in "${args.place}"`);
-  if (args.time) parts.push(`about "${args.time}"`);
-  if (args.person) parts.push(`about "${args.person}"`);
+  if (args.query) parts.push(`the words ${args.query}`);
+  if (args.subject) parts.push(`subject ${args.subject}`);
+  if (args.place) parts.push(`set in ${args.place}`);
+  if (args.time) parts.push(`about the period ${args.time}`);
+  if (args.person) parts.push(`about ${args.person}`);
   if (args.language) parts.push(`in ${args.language}`);
   if (args.year_from !== undefined || args.year_to !== undefined) {
     parts.push(`published ${args.year_from ?? "any time"} to ${args.year_to ?? "now"}`);

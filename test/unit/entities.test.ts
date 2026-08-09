@@ -184,3 +184,71 @@ describe("a work from the book catalogue", () => {
     expect(books[0]?.subjects).toEqual(["Éducation"]);
   });
 });
+
+describe("a name written in another case", () => {
+  it("is read back when only one character answers to it", () => {
+    // A form fills in "&Amp;" as readily as "&amp;", and both stand for the
+    // one character an ampersand escapes.
+    expect(decodeEntities("Rome &Amp; Juliet")).toBe("Rome & Juliet");
+    expect(decodeEntities("Rome &AMP; Juliet")).toBe("Rome & Juliet");
+    expect(decodeEntities("Fish&NBSP;and chips")).toBe("Fish and chips");
+  });
+
+  it("is left standing when the case is what picks the character", () => {
+    // "Egrave" and "egrave" name a capital and a small letter, so a spelling
+    // that matches neither is a spelling this server cannot resolve, and a
+    // wrong letter reads worse than a visible escape.
+    expect(decodeEntities("&EGRAVE;tre")).toBe("&EGRAVE;tre");
+    expect(decodeEntities("&eGrave;tre")).toBe("&eGrave;tre");
+  });
+});
+
+describe("text whose escapes stand at its edges", () => {
+  const rowWith = (fields: Record<string, unknown>) => ({
+    response: {
+      body: { hits: { total: 1, hits: [{ fields: { identifier: "an-item", ...fields } }] } },
+    },
+  });
+
+  it("ends where its words end", () => {
+    // A record padded with "&nbsp;" carries a title of the words before it:
+    // the padding is invisible in every client and leaves a row that reads as
+    // though its title were cut off.
+    const { onSkip } = skipCounter();
+    const results = toSearchResults(
+      rowWith({
+        title: "Mahakavi Akbar &nbsp;&nbsp;",
+        creator: "&nbsp;Raguraj Kishore Vatan&nbsp;",
+      }),
+      URL_UNDER_TEST,
+      onSkip,
+    );
+
+    expect(results.items[0]?.title).toBe("Mahakavi Akbar");
+    expect(results.items[0]?.creator).toBe("Raguraj Kishore Vatan");
+  });
+
+  it("says what the record filed, so a row keeps the evidence of its match", () => {
+    // A search for "nbsp" matches these records on the escape itself, and the
+    // title handed back holds the character the escape stands for. Nothing on
+    // the row then shows why it is in the list.
+    const { onSkip } = skipCounter();
+    const results = toSearchResults(
+      rowWith({ title: "Mahakavi Akbar &nbsp;&nbsp;" }),
+      URL_UNDER_TEST,
+      onSkip,
+    );
+
+    expect(results.items[0]?.titleAsFiled).toBe("Mahakavi Akbar &nbsp;&nbsp;");
+  });
+
+  it("holds nothing extra when reading the title changed nothing", () => {
+    const { onSkip } = skipCounter();
+    const results = toSearchResults(rowWith({ title: "Moby Dick" }), URL_UNDER_TEST, onSkip);
+
+    expect(
+      results.items[0]?.titleAsFiled,
+      "a duplicate of the title is a field that lies by weight",
+    ).toBeNull();
+  });
+});

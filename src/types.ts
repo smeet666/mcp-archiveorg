@@ -7,6 +7,13 @@ export type MediaType = "texts" | "movies" | "audio" | "image" | "software" | "d
 export interface ItemSummary {
   identifier: string;
   title: string | null;
+  /**
+   * The title as the record files it, when reading that text back changed it.
+   * The catalogue matches what was filed, so this is where the words a search
+   * matched on live when the title no longer shows them. Null when the two are
+   * the same string.
+   */
+  titleAsFiled: string | null;
   creator: string | null;
   year: number | null;
   mediaType: string | null;
@@ -88,6 +95,13 @@ export interface Snapshot {
   capturedAt: string;
   url: string;
   status: number | null;
+  /**
+   * The address this capture is of. The index holds a site under several
+   * addresses at once, such as its www form, its https form and a form
+   * carrying credentials, and answers a lookup for one with a capture of
+   * another, so the row has to say which one it describes.
+   */
+  address: string;
 }
 
 export interface NearestSnapshot extends Snapshot {

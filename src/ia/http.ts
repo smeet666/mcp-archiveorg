@@ -68,6 +68,44 @@ export function parseRetryAfter(value: string | null, now = Date.now()): number 
   return Math.max(0, at - now);
 }
 
+/**
+ * What a request the site read and refused was refused about.
+ *
+ * The part of a request a caller can change differs by route: a search carries
+ * an expression the site parses, a capture lookup carries a web address, an
+ * item read carries an identifier. One wording for all three sends most callers
+ * to check syntax in a request that holds no syntax, so each route says what it
+ * actually sent.
+ */
+export function describeRefusal(url: string): { message: string; hint?: string } {
+  let parsed: URL | null = null;
+  try {
+    parsed = new URL(url);
+  } catch {
+    parsed = null;
+  }
+
+  if (parsed?.searchParams.has("user_query") || parsed?.searchParams.has("q")) {
+    return {
+      message: "The Internet Archive would not accept this search.",
+      hint: "The words are read as a query expression, so a quotation mark, bracket or colon left unbalanced in them is read as an operator.",
+    };
+  }
+  if (parsed?.pathname.startsWith("/metadata/")) {
+    return {
+      message: "The Internet Archive would not accept the identifier this request names.",
+      hint: "Pass the identifier on its own, which is the last part of an item's address: 'nasa' rather than 'https://archive.org/details/nasa'.",
+    };
+  }
+  if (parsed?.searchParams.has("url")) {
+    return {
+      message: "The Internet Archive would not accept the web address this request names.",
+      hint: "Pass one address, such as 'lemonde.fr' or 'https://lemonde.fr/'.",
+    };
+  }
+  return { message: "The Internet Archive would not accept this request." };
+}
+
 /** Growing wait with jitter, so several clients do not return in step. */
 function backoffMs(attempt: number): number {
   const base = Math.min(8000, 400 * 2 ** attempt);
@@ -141,10 +179,8 @@ export async function fetchText(options: FetchOptions): Promise<string> {
       // A query it cannot parse is answered this way, and calling that a
       // network failure invites a retry of something only the caller can fix.
       if (response.status === 400 || response.status === 422) {
-        throw invalidInput(
-          "The Internet Archive would not accept this request.",
-          "Check the query syntax. A quotation mark, bracket or colon left unbalanced is read as an operator.",
-        );
+        const refusal = describeRefusal(url);
+        throw invalidInput(refusal.message, refusal.hint);
       }
 
       // The site answered, and answered that it holds nothing at this address.

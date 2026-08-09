@@ -37,6 +37,60 @@ export interface CatalogueQuery {
 }
 
 /**
+ * A term the catalogue's query parser refuses, written so that it accepts it.
+ *
+ * An ampersand with a word character beside it, as in "AT&T" or "R&D", makes
+ * the catalogue refuse the whole query. The index folds punctuation before it
+ * matches, so the term written with a space in place of the ampersand reaches
+ * the same records, and quoting keeps its words together and in order. An
+ * ampersand standing alone between spaces is accepted as written, and a doubled
+ * one is the index's own AND, so both are left as they are.
+ *
+ * The rewrite is idempotent: a term already carrying no ampersand is untouched.
+ */
+export function foldAmpersands(query: string): { query: string; folded: string[] } {
+  const folded: string[] = [];
+
+  // A quoted stretch is a phrase the caller wrote, and it holds its ampersands
+  // in the same way a bare term does, so both halves of the split are read.
+  const parts = query.split('"');
+  const rewritten = parts.map((part, index) => {
+    const quoted = index % 2 === 1;
+    if (!part.includes("&")) return part;
+
+    if (quoted) {
+      if (!/&/.test(part)) return part;
+      const read = part
+        .replace(/&+/g, " ")
+        .replace(/\s{2,}/g, " ")
+        .trim();
+      if (read !== part) folded.push(part);
+      return read;
+    }
+
+    return part
+      .split(/(\s+)/)
+      .map((token) => {
+        if (/^\s*$/.test(token) || !/\w&|&\w/.test(token) || token.includes("&&")) return token;
+        // A field name before the colon is query syntax rather than words to
+        // match, so it stays outside the quotes it would otherwise be searched
+        // as part of.
+        const field = /^([A-Za-z_][A-Za-z0-9_]*:)(.+)$/.exec(token);
+        const [prefix, value] = field ? [field[1]!, field[2]!] : ["", token];
+        const read = value
+          .replace(/&+/g, " ")
+          .replace(/\s{2,}/g, " ")
+          .trim();
+        folded.push(value);
+        return `${prefix}"${read}"`;
+      })
+      .join("");
+  });
+
+  return { query: rewritten.join('"'), folded };
+}
+
+/**
  * The catalogue accepts a Lucene expression, and the filters are folded into
  * the query itself. The caller's words are parenthesised so those filters
  * combine with the whole of what was asked rather than with its last clause.
@@ -45,7 +99,7 @@ export interface CatalogueQuery {
  * the parsers turn into `invalid_input` rather than into an empty result.
  */
 export function catalogueUrl(q: CatalogueQuery): string {
-  const clauses = [`(${q.query})`];
+  const clauses = [`(${foldAmpersands(q.query).query})`];
   if (q.mediaType) clauses.push(`mediatype:${q.mediaType}`);
   if (q.yearFrom !== undefined || q.yearTo !== undefined) {
     const from = q.yearFrom ?? "*";

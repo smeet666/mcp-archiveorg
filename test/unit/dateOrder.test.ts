@@ -39,12 +39,14 @@ const clientReturning = (years: Array<number | null>): ArchiveClient =>
 async function notesOf(
   sort: SearchItemsArgs["sort"],
   years: Array<number | null>,
+  range: { year_from?: number; year_to?: number } = {},
 ): Promise<string> {
   const result = (await runSearchItems(clientReturning(years), {
     query: "book",
     sort,
     limit: 10,
     page: 1,
+    ...range,
   } as SearchItemsArgs)) as unknown as { structuredContent: { notes: string[] } };
   return result.structuredContent.notes.join("\n");
 }
@@ -70,6 +72,18 @@ describe("an order by date", () => {
     const notes = await notesOf("oldest", [null, 1744]);
 
     expect(notes).toMatch(/placeholder|no date/i);
+  });
+
+  it("names the other reason a row heads the order, which is a date read as a tiny year", async () => {
+    // A fifteenth-century manuscript deposited with the date "15" is filed at
+    // the year 15 and heads the order while carrying a date. Explaining the
+    // leading row by an undated item's placeholder alone states a cause the
+    // record contradicts.
+    const notes = await notesOf("oldest", [null, 1744]);
+
+    expect(notes, "a row can lead this order while carrying a date").toMatch(
+      /fragment|small year|century written/i,
+    );
   });
 
   it("states that a date before the common era is filed as a year of it", async () => {
@@ -102,12 +116,85 @@ describe("an order by date", () => {
     );
   });
 
+  it("keeps the placeholder off a page whose every row carries a year", async () => {
+    // The rows a placeholder date puts at the head of the order are the rows
+    // this server reads no year on. A page holding none of them is a page the
+    // explanation describes nothing on.
+    const notes = await notesOf("oldest", [1744, 1876, 1900]);
+
+    expect(notes, "nothing shown here is filed under a placeholder date").not.toMatch(
+      /placeholder|fragment/i,
+    );
+    expect(notes, "the order still rests on a field a depositor typed").toMatch(
+      /deposit|typed|entered|declar/i,
+    );
+  });
+
   it("is silent about ordering when the caller asked for none", async () => {
     for (const sort of ["relevance", "downloads", "title"] as const) {
       const notes = await notesOf(sort, [null, 1876]);
 
       expect(notes, `${sort} does not rank on a date`).not.toMatch(/placeholder/i);
     }
+  });
+});
+
+describe("a range on the year", () => {
+  // The range and the date orders read the same field, so a filtered answer
+  // rests on it exactly as an ordered one does, whatever the sort.
+
+  it("says the field carries no era, whatever the results are sorted by", async () => {
+    // Babylonian tablets of 1712 and 1726 BCE are filed as years of the common
+    // era, so a range of 1700 to 1750 returns them beside eighteenth-century
+    // books and nothing on the row separates the two.
+    const notes = await notesOf("relevance", [1712, 1726], { year_from: 1700, year_to: 1750 });
+
+    expect(notes, "a range on an era-blind field selects rows from the wrong millennium").toMatch(
+      /BCE|before the common era|era/i,
+    );
+  });
+
+  it("says the range was applied to a date a depositor typed", async () => {
+    const notes = await notesOf("relevance", [1712], { year_from: 1700, year_to: 1750 });
+
+    expect(notes).toMatch(/deposit|typed|entered|declar/i);
+  });
+
+  it("counts the returned rows carrying no year, as an order does", async () => {
+    // A range of 1 to 100 comes back full of rows whose year is unreadable:
+    // every row shown is evidence of nothing about the range that selected it.
+    const notes = await notesOf("downloads", [null, null, null], { year_from: 1, year_to: 100 });
+
+    expect(notes).toMatch(/3 of the 3 rows/);
+  });
+
+  it("says as much when only one bound is given", async () => {
+    const notes = await notesOf("relevance", [1712], { year_from: 1700 });
+
+    expect(notes).toMatch(/BCE|before the common era|era/i);
+  });
+
+  it("keeps the era caveat off a range no date before the common era reaches", async () => {
+    // Years the Archive has been collecting through are filled by things
+    // deposited as it collected them, so a range inside them holds no row an
+    // era can turn around, and the caveat spent there is a caveat unread.
+    const notes = await notesOf("relevance", [2021, 2022, 2020], {
+      year_from: 2020,
+      year_to: 2024,
+    });
+
+    expect(notes, "no row here can be an object predating the common era").not.toMatch(
+      /BCE|before the common era|carries no era/i,
+    );
+  });
+
+  it("keeps all of it off an answer resting on no date at all", async () => {
+    // A caveat carried by every answer is a caveat nobody reads.
+    const notes = await notesOf("relevance", [null, 1876]);
+
+    expect(notes, "nothing here was filtered or ranked on the date field").not.toMatch(
+      /era|no year this server could read/i,
+    );
   });
 });
 

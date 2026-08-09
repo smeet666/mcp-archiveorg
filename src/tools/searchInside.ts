@@ -9,13 +9,13 @@
 import { z } from "zod";
 import type { ArchiveClient } from "../ia/client.js";
 import { strictInput } from "./arguments.js";
-import { OCR_CAVEAT, ok, toToolError, truncate } from "./shared.js";
+import { MOST_PAGES, OCR_CAVEAT, agreeing, counted, ok, toToolError, truncate } from "./shared.js";
 import type { ToolResult } from "./shared.js";
 
 export const searchInsideDescription = [
   "Search the text inside digitised books, newspapers and documents on the Internet Archive.",
   "This reads what optical recognition took off the scanned pages, so it finds a phrase that appears nowhere in a title or a catalogue record.",
-  "Put a phrase in double quotes to match it whole; without quotes the words are matched separately, which finds far more.",
+  'Put a phrase in double quotes to hold the words together in that order. The index folds accents, case and punctuation before it matches, so the letters are not held: a quoted "bûcher" comes back on pages printing Bücher and Bucher. Read an excerpt before repeating a quoted query as the spelling a page carries. Without quotes the words are matched separately, which finds far more.',
   "'total' counts the documents that match, and they page: ask for page 2, 3 and so on to see beyond the first answer. It is not a count of how many times the phrase occurs.",
   "The index reports no page number, so a match names the item and the passage, never a leaf. Follow source_url and search the item to find where the passage sits.",
   "When 'inside_container' is true the passage came from a document bundled inside the item, and the title, creator and year describe the container rather than the text that matched: read 'matched_file' for what actually holds it.",
@@ -29,7 +29,13 @@ export const searchInsideInput = strictInput({
     .max(300)
     .describe("Words or a quoted phrase, such as '\"call me ishmael\"'."),
   limit: z.number().int().min(1).max(50).default(10).describe("Matches to return."),
-  page: z.number().int().min(1).max(100).default(1).describe("Which page of matches, from 1."),
+  page: z
+    .number()
+    .int()
+    .min(1)
+    .max(MOST_PAGES)
+    .default(1)
+    .describe(`Which page of matches, from 1. Paging stops at ${MOST_PAGES}.`),
   max_excerpt_chars: z
     .number()
     .int()
@@ -126,28 +132,40 @@ export async function runSearchInside(
 
     if (hits.length > 0) notes.push(OCR_CAVEAT);
     if (data.total > hits.length) {
+      // Advice a caller cannot act on is worse than none: the page after the
+      // last one this tool serves is refused, and a caller who spends a call
+      // finding that out learns nothing about the matches beyond it.
+      const found = `${counted(data.total, "document")} ${agreeing(data.total, "matches", "match")} and ${hits.length} ${agreeing(hits.length, "is", "are")} shown.`;
       notes.push(
-        `${data.total} documents match and ${hits.length} are shown. Ask for page ${args.page + 1} to continue: the matches run past this page, so the answer in hand is not the whole of it.`,
+        args.page >= MOST_PAGES
+          ? `${found} Paging stops at page ${MOST_PAGES}, which this answer is, so the matches beyond it cannot be reached from here: narrow the words to bring them into range.`
+          : `${found} Ask for page ${args.page + 1} to continue: the matches run past this page, so the answer in hand is not the whole of it.`,
       );
     }
     if (data.total === 0) {
+      // Widening by dropping the quotation marks is advice only a quoted query
+      // can act on. Offered on a query that carries none, it sends a caller to
+      // undo something already so, and reads as though the words had been held
+      // together when they were matched apart.
       notes.push(
-        "No digitised document carries this phrase. An unquoted query matches the words separately, which usually finds more.",
+        args.query.includes('"')
+          ? "No digitised document carries this phrase. The words are held together in the order given by the quotation marks; matched separately, without them, they usually find more."
+          : "No digitised document carries these words. They were matched separately, so nothing here was digitised carrying them at all.",
       );
     }
 
     if (hits.length === 0 && data.total > 0) {
       notes.push(
-        `Page ${args.page} is past the last match. ${data.total} documents match, so ask for a lower page.`,
+        `Page ${args.page} is past the last match. ${counted(data.total, "document")} ${agreeing(data.total, "matches", "match")}, so ask for a lower page.`,
       );
     }
 
     const body =
       hits.length === 0
         ? data.total > 0
-          ? `Page ${args.page} is past the last of ${data.total} documents containing ${args.query}.`
+          ? `Page ${args.page} is past the last of ${counted(data.total, "document")} containing ${args.query}.`
           : `Nothing found inside the scans for ${args.query}.`
-        : `${hits.length} of ${data.total} documents containing ${args.query}:\n` +
+        : `${hits.length} of ${counted(data.total, "document")} containing ${args.query}:\n` +
           hits
             .map((hit, index) => {
               const where = [

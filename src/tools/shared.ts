@@ -1,7 +1,7 @@
 /** Schemas, error mapping and rendering shared by the six tools. */
 
 import { z } from "zod";
-import { ArchiveError } from "../errors.js";
+import { ArchiveError, invalidInput } from "../errors.js";
 
 /**
  * The text block is what many clients render, and some render nothing else, so
@@ -11,6 +11,14 @@ import { ArchiveError } from "../errors.js";
 export const MAX_TEXT_CHARS = 2200;
 
 export const ATTRIBUTION = "Source: Internet Archive";
+
+/**
+ * The last page of results a search tool serves.
+ *
+ * The schemas and the notes that point at a next page read the same ceiling, so
+ * a tool cannot advise a page it would then refuse.
+ */
+export const MOST_PAGES = 100;
 
 export interface ToolResult {
   // The SDK's result type carries an index signature for protocol extensions.
@@ -25,7 +33,12 @@ export const itemSummarySchema = z.object({
   title: z.string().nullable(),
   creator: z.string().nullable(),
   year: z.number().int().nullable(),
-  media_type: z.string().nullable().describe("texts, movies, audio, image, software or data."),
+  media_type: z
+    .string()
+    .nullable()
+    .describe(
+      "The kind the catalogue files this row under, in the Archive's own words. Most rows carry one of texts, movies, audio, image, software or data, and some carry a kind the filter cannot ask for, such as 'collection' for a page gathering items rather than an item itself.",
+    ),
   downloads: z.number().int().nullable(),
   source_url: z.string().describe("Public page. Show this when citing the item."),
 });
@@ -33,6 +46,11 @@ export const itemSummarySchema = z.object({
 export const snapshotSchema = z.object({
   captured_at: z.string().describe("ISO 8601, in UTC."),
   url: z.string().describe("The capture itself, readable as it was on that date."),
+  address: z
+    .string()
+    .describe(
+      "The address this capture is of. The Wayback Machine indexes a site under several addresses at once, such as its www form, its https form and a form carrying credentials, so this can differ from the address that was asked about.",
+    ),
   status: z
     .number()
     .int()
@@ -85,6 +103,22 @@ export function toToolError(error: unknown): ToolResult {
   return { content: [{ type: "text", text: lines.join("\n") }], isError: true };
 }
 
+/**
+ * A count and the noun it counts, agreeing.
+ *
+ * A sentence reading "1 of 1 items" is read as a template that was filled in
+ * rather than as a measurement of anything, and a caller who distrusts the
+ * sentence distrusts the number inside it.
+ */
+export function counted(n: number, singular: string, plural = `${singular}s`): string {
+  return `${n} ${n === 1 ? singular : plural}`;
+}
+
+/** The form a verb takes beside a count, for the same reason. */
+export function agreeing(n: number, singular: string, plural: string): string {
+  return n === 1 ? singular : plural;
+}
+
 export function truncate(text: string, maxChars: number): string {
   if (text.length <= maxChars) return text;
   return `${text.slice(0, Math.max(0, maxChars - 1)).trimEnd()}…`;
@@ -112,3 +146,86 @@ export function renderItems(items: Array<z.infer<typeof itemSummarySchema>>): st
 /** Wording used wherever scanned text reaches the caller. */
 export const OCR_CAVEAT =
   "Excerpts are the text a machine read off the scanned page, so misreadings are normal and words may be wrong. Quote them as such, and follow source_url to check the page itself.";
+
+/** How to write the argument, said the same way wherever an address is refused. */
+const ADDRESS_HINT = "Pass one address, such as 'lemonde.fr' or 'https://lemonde.fr/'.";
+
+/**
+ * An address as the caller typed it, refused when it cannot be one.
+ *
+ * A control character inside an address is dropped or trimmed somewhere between
+ * here and the index, which then answers about whatever address survived.
+ * Refusing keeps a capture of another page from arriving under the wording that
+ * was typed.
+ *
+ * A value that names no site is refused for a second reason: the capture index
+ * answers such a lookup with no capture, in the very shape of an address it has
+ * never visited, and the tools render that as an absence. An absence is a
+ * statement about what the Wayback Machine holds, and this one would be about a
+ * mistake in the argument.
+ */
+export function readAddress(value: string): string {
+  const trimmed = value.trim();
+  if (trimmed === "" || /[\u0000-\u001f\u007f]/.test(trimmed)) {
+    throw invalidInput(
+      `"${value.replace(/[\u0000-\u001f\u007f]/g, "\u2423")}" carries a character an address cannot hold, such as a line break or a tab.`,
+      ADDRESS_HINT,
+    );
+  }
+
+  // Everything before the first slash, question mark or hash is the host, which
+  // is the part the index resolves. A host is a name carrying a dot, a numeric
+  // address, or the machine this server runs on; anything else names no site.
+  const host = trimmed
+    .replace(/^[a-z][a-z0-9+.-]*:\/\//i, "")
+    .split(/[/?#]/)[0]!
+    .replace(/^[^@]*@/, "")
+    .replace(/:\d+$/, "");
+  const namesASite =
+    host === "localhost" || /^\[[0-9a-f:]+\]$/i.test(host) || /^[^\s.]+(?:\.[^\s.]+)+$/.test(host);
+  if (!namesASite) {
+    throw invalidInput(
+      `"${trimmed}" does not name a web address, so there is nothing here to look up.`,
+      ADDRESS_HINT,
+    );
+  }
+
+  return trimmed;
+}
+
+/**
+ * Whether a capture is of the address that was asked about.
+ *
+ * The Wayback Machine resolves a lookup across the address forms it holds and
+ * answers with a capture of whichever it chose. A caller who typed no scheme
+ * asked about neither http nor https, so the scheme is left out of the
+ * comparison in that case alone; everything else is compared as written, since
+ * the index keeps those forms as separate addresses with separate histories.
+ * A port the scheme implies names the same address as no port at all, and the
+ * index writes older captures with it.
+ */
+export function sameAddress(asked: string, captured: string): boolean {
+  const withoutDefaultPort = (value: string) =>
+    value.replace(/^((?:[a-z][a-z0-9+.-]*:\/\/)?[^/]*?):(?:80|443)(?=$|\/)/, "$1");
+  const tidy = (value: string) =>
+    withoutDefaultPort(value.trim().toLowerCase()).replace(/\/+$/, "");
+  const withoutScheme = (value: string) => value.replace(/^[a-z][a-z0-9+.-]*:\/\//, "");
+  const a = tidy(asked);
+  const c = tidy(captured);
+  return /^[a-z][a-z0-9+.-]*:\/\//.test(a) ? a === c : withoutScheme(a) === withoutScheme(c);
+}
+
+/**
+ * What to say about a page holding no rows while the search matched some.
+ *
+ * A page past the end arrives in exactly the shape of a search that matched
+ * nothing, and rendering it as an empty catalogue turns the caller's own paging
+ * into a statement about what the source holds. Null when the page is within
+ * range, so the wording travels only where it applies.
+ */
+export function pastLastPage(total: number, limit: number, page: number): string | null {
+  if (total <= 0) return null;
+  const last = Math.ceil(total / limit);
+  if (page <= last) return null;
+  return `Page ${page} is past the last page holding rows: ${total} match(es) at ${limit} per page fill ${last} page(s). This page is empty because of where it sits, and the matches are on the pages before it.`;
+}
