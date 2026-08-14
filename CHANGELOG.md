@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.5.1
+
+- The README carries the same badge row as every server here: npm, CI, the
+  licence, the MCP registry entry, the Glama score, and one-click installs for
+  Cursor and VS Code. Each install link encodes this package. npm serves the
+  README frozen at publish time, so a release is what puts it there.
+
 ## 1.5.0
 
 - `search_items` could not find `AT&T`, `R&D` or `M&Ms`: the catalogue's query
