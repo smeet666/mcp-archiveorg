@@ -1,9 +1,11 @@
 # mcp-archiveorg
 
 ## Tagline
+
 Search inside digitised books, browse the Internet Archive, read Wayback captures.
 
 ## Description
+
 An MCP server for the Internet Archive. Three questions, three tools. Find a
 phrase written inside a scanned book, newspaper or document. Find a work in the
 catalogue by title, creator or subject. See what a web page looked like on a
@@ -19,6 +21,7 @@ misreadings, and say so. A Wayback capture always reports how many days
 separate it from the date asked for, because the closest one can be years away.
 
 ## Setup Requirements
+
 - `IA_USER_AGENT` (optional): Identify your own client. The project's own identifier is appended, so the Archive can always reach a human.
 - `IA_MIN_INTERVAL_MS` (optional): Minimum gap between requests. Default 1000, and values below 500 are refused.
 - `IA_TIMEOUT_MS` (optional): Per-request deadline. Default 20000.
@@ -29,9 +32,11 @@ separate it from the date asked for, because the closest one can be years away.
 No API key and no account are needed.
 
 ## Category
+
 Education & Research
 
 ## Features
+
 - Full-text search inside scanned books, newspapers and documents
 - Catalogue search across films, books, audio, software and images
 - Read one item record section by section, including its files
@@ -44,6 +49,7 @@ Education & Research
 - Self-paced requests and an honest User-Agent, out of respect for a non-profit
 
 ## Getting Started
+
 - "Which book contains the sentence 'it was a bright cold day in April'?"
 - "What did the BBC home page look like in December 1998?"
 - "Find recordings of Georges Brassens in the Archive"
@@ -55,7 +61,9 @@ Education & Research
 - Tool: list_snapshots — The capture history of a page
 
 ## Tags
+
 internet-archive, wayback-machine, books, full-text-search, open-library, archives, research, history, no-api-key
 
 ## Documentation URL
+
 https://github.com/smeet666/mcp-archiveorg#readme
