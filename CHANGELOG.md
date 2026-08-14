@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.5.3
+
+### Fixed
+
+- A search whose backend failed inside the Archive is reported as a service that
+  did not answer, rather than as a search the caller wrote wrongly. The Archive
+  answers such a failure with the status it also uses to refuse a request, and
+  states a reason for it that is marked as an error of its own, beside the
+  service that did not respond. That reason was read as a verdict on the query,
+  so a well-formed search came back as `invalid_input` while the same words were
+  answered again as soon as the service recovered. A stated reason carrying such
+  a marker is asked again and, if it stands, reported as a failure behind the
+  Archive, with the Archive's own words kept so it can be recognised.
+
 ## 1.5.2
 
 ### Fixed

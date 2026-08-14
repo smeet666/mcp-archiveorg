@@ -448,3 +448,58 @@ describe("a refusal the Archive states no reason for", () => {
     expect((outcome.error as ArchiveError).details.status).toBe(400);
   });
 });
+
+/**
+ * A reason the Archive states about its own machinery.
+ *
+ * The Archive answers a failure in the services behind the search with the same
+ * status it uses to refuse a request, and states a reason for it: a child
+ * request that failed, a backend that returned nothing usable. The reason is
+ * marked as an error of its own rather than written as a sentence about the
+ * query, which is what tells the two apart.
+ *
+ * Reading it as a verdict on the request tells a caller to rewrite a search the
+ * Archive never objected to, while the search it names is answered again as
+ * soon as the service behind it recovers.
+ */
+describe("a refusal naming the Archive's own machinery", () => {
+  const backend = () =>
+    new Response(
+      JSON.stringify({
+        response: {
+          errors: [
+            {
+              message:
+                "child request for collection_title_fetch__58456b71 failed ([BACKEND_ERROR] Invalid or no response from Elasticsearch, received: <html><body><h1>400 Bad request</h1>",
+            },
+          ],
+        },
+      }),
+      { status: 400 },
+    );
+
+  it("is asked again, since the request was never what was wrong", async () => {
+    const { fetchImpl, count } = scriptedFetch([backend, () => jsonResponse({ ok: 1 })]);
+    const data = await run(fetchJson(options({ fetchImpl, maxRetries: 2 })));
+
+    expect(data, "the retry's answer is the answer").toEqual({ ok: 1 });
+    expect(count()).toBe(2);
+  });
+
+  it("is never reported as the caller's mistake once the retries run out", async () => {
+    const { fetchImpl } = scriptedFetch([backend]);
+    const outcome = await captureAsync(() => run(fetchJson(options({ fetchImpl, maxRetries: 1 }))));
+
+    expect(
+      (outcome.error as ArchiveError).code,
+      "a search is not rewritten to repair a service behind the Archive",
+    ).not.toBe("invalid_input");
+  });
+
+  it("still repeats what the Archive said, so the failure can be recognised", async () => {
+    const { fetchImpl } = scriptedFetch([backend]);
+    const outcome = await captureAsync(() => run(fetchJson(options({ fetchImpl, maxRetries: 1 }))));
+
+    expect((outcome.error as ArchiveError).message).toContain("Elasticsearch");
+  });
+});
