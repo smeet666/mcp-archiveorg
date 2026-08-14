@@ -107,6 +107,19 @@ export function describeRefusal(url: string): { message: string; hint?: string }
 }
 
 /**
+ * A stated reason that names a failure in the Archive's own services rather
+ * than a fault in the request.
+ *
+ * The Archive answers a search whose backend failed with the status it also
+ * uses to refuse a request, and marks the reason as an error of its own:
+ * `[BACKEND_ERROR]` beside the service that did not answer. A sentence about
+ * the query carries no such marker, which is what separates the two.
+ */
+const BACKEND_FAULT = /\[[A-Z_]*ERROR\]/;
+
+export const namesItsOwnFailure = (reason: string): boolean => BACKEND_FAULT.test(reason);
+
+/**
  * What the Archive said it objected to, when it said anything.
  *
  * A refusal aimed at the request carries a sentence naming what was wrong with
@@ -208,14 +221,16 @@ export async function fetchText(options: FetchOptions): Promise<string> {
         continue;
       }
 
-      // The site read the request and would not run it. It uses this status
-      // both for a request it objects to and for one it declines to serve at
-      // that moment, and only the first carries a sentence saying what was
-      // wrong. Reading a bare refusal as the caller's mistake sends them to
-      // correct a request the site never objected to.
+      // The site read the request and would not run it. It uses this status for
+      // three different things: a request it objects to, which states what was
+      // wrong with it; a failure in its own services, which states a reason
+      // marked as an error of its own; and a refusal it gives no reason for at
+      // all. Only the first is the caller's to fix, and reading either of the
+      // others that way sends them to correct a request nothing objected to.
       if (response.status === 400 || response.status === 422) {
         const stated = statedReason(await response.text().catch(() => ""));
-        if (stated !== null) {
+
+        if (stated !== null && !namesItsOwnFailure(stated)) {
           const refusal = describeRefusal(url);
           throw invalidInput(`${refusal.message} It said: ${stated}`, refusal.hint);
         }
@@ -226,7 +241,9 @@ export async function fetchText(options: FetchOptions): Promise<string> {
           continue;
         }
         throw networkError(
-          `The Internet Archive refused this request without stating a reason (HTTP ${response.status}).`,
+          stated === null
+            ? `The Internet Archive refused this request without stating a reason (HTTP ${response.status}).`
+            : `A service behind the Internet Archive did not answer. It said: ${stated}`,
           { url, status: response.status },
         );
       }
