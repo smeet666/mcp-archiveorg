@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.5.2
+
+### Fixed
+
+- A refusal the Archive states no reason for is no longer reported as a mistake
+  in the request. The Archive answers HTTP 400 both to a request it objects to
+  and to one it declines to serve at that moment, and only the first carries a
+  sentence naming what was wrong. Every 400 was read as the second kind, so a
+  perfectly well-formed search came back as `invalid_input` advising the caller
+  to check their quotation marks, and the same words were answered a minute
+  later. A refusal with no stated reason is now asked again and, if it stands,
+  reported as a failure of the request to be served rather than of the caller to
+  write it.
+- A refusal the Archive does explain repeats the Archive's own sentence, so a
+  search whose quotation mark is never closed says which structure was opened
+  and where, rather than listing the characters that can break a query.
+
 ## 1.5.1
 
 - The README carries the same badge row as every server here: npm, CI, the

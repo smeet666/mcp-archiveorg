@@ -106,6 +106,39 @@ export function describeRefusal(url: string): { message: string; hint?: string }
   return { message: "The Internet Archive would not accept this request." };
 }
 
+/**
+ * What the Archive said it objected to, when it said anything.
+ *
+ * A refusal aimed at the request carries a sentence naming what was wrong with
+ * it, under `response.error` or in the `response.errors` list. Returning null
+ * means the body held no such sentence, which is the case that must not be
+ * reported as the caller's mistake.
+ */
+export function statedReason(body: string): string | null {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(body);
+  } catch {
+    return null;
+  }
+
+  const response = (parsed as { response?: unknown })?.response as
+    { error?: { message?: unknown }; errors?: Array<{ message?: unknown }> } | undefined;
+  if (!response) return null;
+
+  const listed = Array.isArray(response.errors)
+    ? response.errors
+        .map((entry) => entry?.message)
+        .filter(
+          (message): message is string => typeof message === "string" && message.trim() !== "",
+        )
+    : [];
+  if (listed.length > 0) return listed.join("; ");
+
+  const single = response.error?.message;
+  return typeof single === "string" && single.trim() !== "" ? single : null;
+}
+
 /** Growing wait with jitter, so several clients do not return in step. */
 function backoffMs(attempt: number): number {
   const base = Math.min(8000, 400 * 2 ** attempt);
@@ -175,12 +208,27 @@ export async function fetchText(options: FetchOptions): Promise<string> {
         continue;
       }
 
-      // The request itself was refused: the site read it and would not run it.
-      // A query it cannot parse is answered this way, and calling that a
-      // network failure invites a retry of something only the caller can fix.
+      // The site read the request and would not run it. It uses this status
+      // both for a request it objects to and for one it declines to serve at
+      // that moment, and only the first carries a sentence saying what was
+      // wrong. Reading a bare refusal as the caller's mistake sends them to
+      // correct a request the site never objected to.
       if (response.status === 400 || response.status === 422) {
-        const refusal = describeRefusal(url);
-        throw invalidInput(refusal.message, refusal.hint);
+        const stated = statedReason(await response.text().catch(() => ""));
+        if (stated !== null) {
+          const refusal = describeRefusal(url);
+          throw invalidInput(`${refusal.message} It said: ${stated}`, refusal.hint);
+        }
+
+        if (attempt < maxRetries) {
+          lastError = new Error(`HTTP ${response.status}`);
+          askedWaitMs = backoffMs(attempt);
+          continue;
+        }
+        throw networkError(
+          `The Internet Archive refused this request without stating a reason (HTTP ${response.status}).`,
+          { url, status: response.status },
+        );
       }
 
       // The site answered, and answered that it holds nothing at this address.

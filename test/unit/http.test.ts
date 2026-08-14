@@ -138,9 +138,12 @@ describe("fetchJson, the good path", () => {
 });
 
 describe("fetchJson, statuses that are not retried", () => {
+  // 400 is absent on purpose: the Archive sends it both for a request it
+  // objects to and for one it declines to serve at that moment, and what
+  // separates them is whether the body states a reason. The two cases are
+  // covered below, each with the number of attempts it warrants.
   const finals: Array<[number, string]> = [
     [404, "the Archive answered, and holds nothing there"],
-    [400, "the request itself was wrong, and asking again changes nothing"],
     [403, "a refusal on grounds a retry cannot alter"],
     [451, "a refusal on grounds a retry cannot alter"],
   ];
@@ -359,5 +362,89 @@ describe("fetchText", () => {
       (outcome.error as ArchiveError).code,
       "the two entry points must agree on what a status means",
     ).toBe("not_found");
+  });
+});
+
+/**
+ * The Archive answers a request it read and would not run with 400, and it uses
+ * that status for two different things.
+ *
+ * When it objects to the query, it says what it objected to, in words: a search
+ * whose quotation mark is never closed comes back with "a structure was opened
+ * but not closed". That is the caller's to fix, and repeating the Archive's own
+ * sentence beats guessing at which character it meant.
+ *
+ * It also answers 400 to a query it parses perfectly well, and the same words
+ * that are refused one minute are answered the next. Reading that as a verdict
+ * on the query tells a caller to correct a search that has nothing wrong with
+ * it, and hides that the Archive was the thing that was unavailable.
+ */
+describe("a refusal the Archive explains", () => {
+  const refusal = (message: string) =>
+    new Response(JSON.stringify({ response: { errors: [{ message }] } }), { status: 400 });
+
+  it("is the caller's to fix, and is asked only once", async () => {
+    const { fetchImpl, count } = scriptedFetch([
+      () => refusal("a structure was opened but not closed (quoted phrase open at position 1)"),
+    ]);
+    const outcome = await captureAsync(() => run(fetchJson(options({ fetchImpl, maxRetries: 3 }))));
+
+    expect((outcome.error as ArchiveError).code).toBe("invalid_input");
+    expect(count(), "the Archive has said what is wrong; asking again changes nothing").toBe(1);
+  });
+
+  it("repeats what the Archive said rather than guessing at it", async () => {
+    const { fetchImpl } = scriptedFetch([
+      () => refusal("a structure was opened but not closed (quoted phrase open at position 1)"),
+    ]);
+    const outcome = await captureAsync(() => run(fetchJson(options({ fetchImpl }))));
+
+    expect((outcome.error as ArchiveError).message).toContain(
+      "a structure was opened but not closed",
+    );
+  });
+
+  it("reads the reason whether it is stated once or as a list", async () => {
+    const single = new Response(
+      JSON.stringify({
+        response: { error: { message: "search: the field is not one it indexes" } },
+      }),
+      { status: 400 },
+    );
+    const { fetchImpl } = scriptedFetch([() => single]);
+    const outcome = await captureAsync(() => run(fetchJson(options({ fetchImpl }))));
+
+    expect((outcome.error as ArchiveError).code).toBe("invalid_input");
+    expect((outcome.error as ArchiveError).message).toContain("the field is not one it indexes");
+  });
+});
+
+describe("a refusal the Archive states no reason for", () => {
+  const bare = () => new Response("{}", { status: 400 });
+
+  it("is asked again, since nothing said the request was wrong", async () => {
+    const { fetchImpl, count } = scriptedFetch([bare, () => jsonResponse({ ok: 1 })]);
+    const data = await run(fetchJson(options({ fetchImpl, maxRetries: 2 })));
+
+    expect(data, "the retry's answer is the answer").toEqual({ ok: 1 });
+    expect(count()).toBe(2);
+  });
+
+  it("is never reported as the caller's mistake once the retries run out", async () => {
+    const { fetchImpl } = scriptedFetch([bare]);
+    const outcome = await captureAsync(() => run(fetchJson(options({ fetchImpl, maxRetries: 1 }))));
+
+    expect(
+      (outcome.error as ArchiveError).code,
+      "telling a caller to correct a search the Archive never objected to sends them after nothing",
+    ).not.toBe("invalid_input");
+  });
+
+  it("says that the Archive refused without giving a reason", async () => {
+    const { fetchImpl } = scriptedFetch([bare]);
+    const outcome = await captureAsync(() => run(fetchJson(options({ fetchImpl, maxRetries: 1 }))));
+
+    expect((outcome.error as ArchiveError).message).toMatch(/refused .*without .*reason/i);
+    expect((outcome.error as ArchiveError).details.status).toBe(400);
   });
 });

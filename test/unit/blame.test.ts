@@ -149,8 +149,16 @@ describe("a hint attached to a refusal", () => {
     fetchImpl,
   });
 
+  // A refusal the Archive states a reason for is the one it means about the
+  // request, and so the one that carries a hint about what to change.
   const refused = async (url: string) => {
-    const { fetchImpl } = scriptedFetch([() => jsonResponse({}, { status: 400 })]);
+    const { fetchImpl } = scriptedFetch([
+      () =>
+        jsonResponse(
+          { response: { errors: [{ message: "the request was not one it would run" }] } },
+          { status: 400 },
+        ),
+    ]);
     const outcome = await captureAsync(() => settle(fetchJson(options(fetchImpl, url)), 60_000));
     expect(outcome.threw).toBe(true);
     const error = outcome.error as ArchiveError;
