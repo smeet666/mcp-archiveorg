@@ -5,7 +5,7 @@
 [![license](https://img.shields.io/npm/l/mcp-archiveorg.svg)](./LICENSE)
 [![MCP Registry](https://img.shields.io/badge/MCP_Registry-listed-6E56CF)](https://registry.modelcontextprotocol.io/v0/servers?search=io.github.smeet666/mcp-archiveorg)
 [![Glama](https://glama.ai/mcp/servers/smeet666/mcp-archiveorg/badges/score.svg)](https://glama.ai/mcp/servers/smeet666/mcp-archiveorg)
-[![M8ven Score](https://m8ven.ai/badge/mcp/smeet666-mcp-archiveorg-1wia08)](https://m8ven.ai/mcp/smeet666-mcp-archiveorg-1wia08)
+[![M8ven](https://m8ven.ai/badge/mcp/smeet666-mcp-archiveorg-1wia08?variant=verified)](https://m8ven.ai/mcp/smeet666-mcp-archiveorg-1wia08)
 <!-- m8ven-verify: 1b912922cee8f3a46080bbb4b83487e1 -->
 [![Install in Cursor](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/en/install-mcp?name=archiveorg&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsIm1jcC1hcmNoaXZlb3JnIl19)
 [![Install in VS Code](https://img.shields.io/badge/VS_Code-Install-0098FF?style=flat&logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=archiveorg&config=%7B%22name%22%3A%22archiveorg%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22mcp-archiveorg%22%5D%7D)
