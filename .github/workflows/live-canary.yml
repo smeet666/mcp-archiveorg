@@ -7,6 +7,11 @@
 #
 # It is deliberately separate from CI: it depends on a third-party service, so a
 # failure here means "the API moved", never "this pull request is bad".
+#
+# An Archive that did not answer at all is not a contract that moved, and the
+# suite declares those assertions inconclusive rather than failing them. A run
+# whose tests are mostly skipped is a bad night at the Archive; a run that fails
+# is a route that changed.
 
 name: Live canary
 
@@ -29,8 +34,8 @@ jobs:
       # Needed to open the issue that reports a broken contract.
       issues: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -43,12 +48,16 @@ jobs:
           IA_MIN_INTERVAL_MS: "2000"
           # Generous: a canary must fail on a changed contract, not on a slow night.
           IA_TIMEOUT_MS: "60000"
+          # More attempts than a caller would wait through. The services behind
+          # the full-text search fail for a minute at a time, and a canary that
+          # gives up as fast as an interactive tool reports those as breakage.
+          IA_MAX_RETRIES: "5"
           IA_LOG_LEVEL: info
         run: npm run test:live
 
       - name: Report a broken canary
         if: failure()
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const title = "Live canary failing: the the Internet Archive API may have changed";

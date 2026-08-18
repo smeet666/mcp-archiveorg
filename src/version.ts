@@ -3,5 +3,5 @@
  * embeds it, so the Internet Archive can tell which build is calling from its
  * own logs.
  */
-export const PKG_VERSION = "1.5.3";
+export const PKG_VERSION = "1.5.4";
 export const REPO_URL = "https://github.com/smeet666/mcp-archiveorg";

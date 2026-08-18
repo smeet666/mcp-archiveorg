@@ -8,7 +8,8 @@
  * where a parser is given a counter, the rows it dropped are reported.
  */
 
-import { invalidInput, notFound, parseFailure } from "../errors.js";
+import { invalidInput, networkError, notFound, parseFailure } from "../errors.js";
+import { namesItsOwnFailure } from "./http.js";
 import type {
   Book,
   InsideHit,
@@ -143,6 +144,20 @@ function searchBody(payload: unknown, url: string): Json {
   if (header && header.succeeded === false) {
     const errors = Array.isArray(header.errors) ? header.errors.map(asObject) : [];
     const reason = asString(errors[0]?.message) ?? "the site did not say why";
+
+    // The same envelope carries a failure in the services behind the search.
+    // Read as a verdict on the query, it sends a caller to rewrite an
+    // expression nothing objected to, and calls settled a question that is
+    // answered again as soon as the service recovers.
+    if (namesItsOwnFailure(reason)) {
+      throw networkError(
+        `A service behind the Internet Archive did not answer. It said: ${reason}`,
+        {
+          url,
+        },
+      );
+    }
+
     throw invalidInput(
       `The Internet Archive refused this query: ${reason}`,
       "Check the query syntax. A quotation mark, bracket or colon left unbalanced is read as an operator.",
