@@ -1,5 +1,26 @@
 # Changelog
 
+## 1.5.4
+
+### Fixed
+
+- A search whose backend failed is reported as a service that did not answer
+  whichever way the Archive says so. It marks the failed service on some
+  answers and describes it in a sentence on others, quoting the status that
+  service returned: `The search backend encountered an exception (the FTS API
+request failed, the error reported was: HTTP 502)`. Only the marked wording
+  was recognised, so the sentence came back as `invalid_input` telling the
+  caller to look for an unbalanced quotation mark in a search that had none,
+  and the retry that would have ridden out a passing failure was skipped.
+- The same failure arriving with HTTP 200 is read the same way. The full-text
+  route answers a query it will not run with a success status and no rows, and
+  carries a failure of its own services in that envelope too; every one of them
+  was reported as a query the caller wrote wrongly.
+- The live canary declares an assertion inconclusive when the Archive did not
+  answer at all, rather than failing it. A route that changed shape is what the
+  canary exists to catch, and a night when the search backend is down was
+  filing an issue about a contract nobody broke.
+
 ## 1.5.3
 
 ### Fixed

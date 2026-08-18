@@ -65,6 +65,43 @@ describe("a query the site refused", () => {
   });
 });
 
+/** The same envelope, carrying a failure in the services behind the search. */
+const brokeDown = {
+  response: {
+    header: {
+      succeeded: false,
+      errors: [
+        {
+          message:
+            "The search backend encountered an exception (the FTS API request failed, the error reported was: HTTP 502)",
+        },
+      ],
+    },
+    body: { hits: { total: null, hits: null } },
+  },
+};
+
+describe("a search whose backend failed", () => {
+  it("is not reported as a query the caller wrote wrongly", () => {
+    const { onSkip } = skipCounter();
+
+    expect(
+      codeOf(() => toInsideResults(brokeDown, URL_UNDER_TEST, onSkip)),
+      "a well-formed search is not rewritten to repair a service behind the Archive",
+    ).not.toBe("invalid_input");
+  });
+
+  it("names the service rather than the words that were searched for", () => {
+    const { onSkip } = skipCounter();
+    try {
+      toInsideResults(brokeDown, URL_UNDER_TEST, onSkip);
+      expect.unreachable("a failed search must not return");
+    } catch (error) {
+      expect((error as Error).message).toContain("A service behind the Internet Archive");
+    }
+  });
+});
+
 describe("a total that cannot be read", () => {
   it("is not rendered as zero, which reads as a proven absence", () => {
     const { onSkip } = skipCounter();

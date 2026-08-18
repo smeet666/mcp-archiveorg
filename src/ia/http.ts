@@ -111,13 +111,32 @@ export function describeRefusal(url: string): { message: string; hint?: string }
  * than a fault in the request.
  *
  * The Archive answers a search whose backend failed with the status it also
- * uses to refuse a request, and marks the reason as an error of its own:
- * `[BACKEND_ERROR]` beside the service that did not answer. A sentence about
- * the query carries no such marker, which is what separates the two.
+ * uses to refuse a request. It says so in more than one wording: a marker of
+ * its own beside the service that did not answer, a sentence naming the service
+ * and what it did, or the status that service returned quoted inside the
+ * sentence. A reason aimed at the request carries none of these: it describes
+ * the expression, and quotes a position in it.
+ *
+ * Recognising one wording only is what makes the rest reach a caller as
+ * `invalid_input`, sending them to rewrite a search nothing objected to while
+ * the failure is at the other end and clears on its own.
  */
-const BACKEND_FAULT = /\[[A-Z_]*ERROR\]/;
+const BACKEND_FAULT = [
+  /** The marker the search route puts beside a service that failed. */
+  /\[[A-Z_]*ERROR\]/,
+  /** A status of its own, quoted in the sentence: "the error reported was: HTTP 502". */
+  /\bHTTP\s*5\d{2}\b/i,
+  /** The service named as the thing that failed, rather than the query. */
+  /\bbackend\b/i,
+  /\bElasticsearch\b/i,
+  /** What it says the service did. A refusal about a query says none of this. */
+  /\bencountered an exception\b/i,
+  /\b(?:request|query|call) failed\b/i,
+  /\b(?:did not|didn't) respond\b/i,
+];
 
-export const namesItsOwnFailure = (reason: string): boolean => BACKEND_FAULT.test(reason);
+export const namesItsOwnFailure = (reason: string): boolean =>
+  BACKEND_FAULT.some((wording) => wording.test(reason));
 
 /**
  * What the Archive said it objected to, when it said anything.

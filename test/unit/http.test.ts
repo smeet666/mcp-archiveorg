@@ -503,3 +503,75 @@ describe("a refusal naming the Archive's own machinery", () => {
     expect((outcome.error as ArchiveError).message).toContain("Elasticsearch");
   });
 });
+
+/**
+ * The same failure, stated in prose.
+ *
+ * The Archive does not always mark the service that failed. The full-text route
+ * says so in a sentence, and quotes the status that service returned inside it.
+ * Nothing here is about the query, and a caller told to rewrite one is sent to
+ * correct a search that will answer as soon as the service is back.
+ */
+describe("a refusal naming the Archive's own machinery in a sentence", () => {
+  const unmarked = () =>
+    new Response(
+      JSON.stringify({
+        response: {
+          error: {
+            message:
+              "The search backend encountered an exception (the FTS API request failed, the error reported was: HTTP 502)",
+          },
+        },
+      }),
+      { status: 400 },
+    );
+
+  it("is asked again, since a service that fell over comes back", async () => {
+    const { fetchImpl, count } = scriptedFetch([unmarked, () => jsonResponse({ ok: 1 })]);
+    const data = await run(fetchJson(options({ fetchImpl, maxRetries: 2 })));
+
+    expect(data, "the retry's answer is the answer").toEqual({ ok: 1 });
+    expect(count()).toBe(2);
+  });
+
+  it("is never reported as the caller's mistake once the retries run out", async () => {
+    const { fetchImpl } = scriptedFetch([unmarked]);
+    const outcome = await captureAsync(() => run(fetchJson(options({ fetchImpl, maxRetries: 1 }))));
+
+    expect(
+      (outcome.error as ArchiveError).code,
+      "a well-formed search is not rewritten to repair an HTTP 502 behind it",
+    ).not.toBe("invalid_input");
+  });
+});
+
+/**
+ * A refusal that is about the query keeps being read as one.
+ *
+ * Widening what counts as the Archive's own failure is only safe while a
+ * sentence about the expression stays on the other side of the line: read as a
+ * service failure, it would be retried three times and then reported as
+ * unreachable, leaving the caller with an unbalanced quotation mark and nothing
+ * saying so.
+ */
+describe("a refusal about the query itself", () => {
+  const syntax = () =>
+    new Response(
+      JSON.stringify({
+        response: {
+          error: {
+            message: "a structure was opened but not closed (quoted phrase open at position 1)",
+          },
+        },
+      }),
+      { status: 400 },
+    );
+
+  it("is handed back as the caller's to fix, without another attempt", async () => {
+    const { fetchImpl, count } = scriptedFetch([syntax, () => jsonResponse({ ok: 1 })]);
+    const outcome = await captureAsync(() => run(fetchJson(options({ fetchImpl, maxRetries: 2 }))));
+
+    expect((outcome.error as ArchiveError).code).toBe("invalid_input");
+    expect(count(), "an expression the site parsed and rejected parses the same way twice").toBe(1);
+  });
+});
