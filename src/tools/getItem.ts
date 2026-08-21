@@ -97,8 +97,7 @@ function readIdentifier(value: string): { identifier: string; spaceRemoved: bool
   const address = /^[a-z][a-z0-9+.-]*:\/\//i.test(identifier) || identifier.includes("/");
   if (address || /[?#\s]/.test(identifier)) {
     const last =
-      identifier
-        .split(/[?#]/)[0]!
+      (identifier.split(/[?#]/)[0] ?? "")
         .split("/")
         .filter((part) => part !== "")
         .pop() ?? "";
@@ -156,11 +155,11 @@ export async function runGetItem(client: ArchiveClient, args: GetItemArgs): Prom
     }
 
     if (wanted.has("files")) {
-      const matching = args.file_format
-        ? data.files.filter(
-            (file) => (file.format ?? "").toLowerCase() === args.file_format!.toLowerCase(),
-          )
-        : data.files;
+      const wantedFormat = args.file_format?.toLowerCase();
+      const matching =
+        wantedFormat === undefined
+          ? data.files
+          : data.files.filter((file) => (file.format ?? "").toLowerCase() === wantedFormat);
       const shown = matching.slice(0, args.max_files);
       structured.files = shown.map((file) => ({
         name: file.name,

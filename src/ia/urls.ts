@@ -76,7 +76,7 @@ export function foldAmpersands(query: string): { query: string; folded: string[]
         // match, so it stays outside the quotes it would otherwise be searched
         // as part of.
         const field = /^([A-Za-z_][A-Za-z0-9_]*:)(.+)$/.exec(token);
-        const [prefix, value] = field ? [field[1]!, field[2]!] : ["", token];
+        const [prefix, value] = field ? [field[1] ?? "", field[2] ?? ""] : ["", token];
         const read = value
           .replace(/&+/g, " ")
           .replace(/\s{2,}/g, " ")

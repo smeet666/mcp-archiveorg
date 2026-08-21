@@ -145,7 +145,7 @@ export const snapshotUrl = (timestamp: string, url: string) =>
  */
 export const capturedAddress = (waybackUrl: string): string | null => {
   const match = /\/web\/\d{4,14}[a-z_]*\/(.+)$/.exec(waybackUrl);
-  return match ? match[1]! : null;
+  return match?.[1] ?? null;
 };
 
 export const bookUrl = (key: string) => `${HOST.openLibrary}${key}`;
