@@ -155,7 +155,8 @@ export function statedReason(body: string): string | null {
   }
 
   const response = (parsed as { response?: unknown })?.response as
-    { error?: { message?: unknown }; errors?: Array<{ message?: unknown }> } | undefined;
+    | { error?: { message?: unknown }; errors?: Array<{ message?: unknown }> }
+    | undefined;
   if (!response) return null;
 
   const listed = Array.isArray(response.errors)
@@ -303,7 +304,6 @@ export async function fetchText(options: FetchOptions): Promise<string> {
         throw networkError(`Could not reach the Internet Archive: ${lastError.message}`, { url });
       }
       askedWaitMs = backoffMs(attempt);
-      continue;
     } finally {
       clearTimeout(deadline);
     }
