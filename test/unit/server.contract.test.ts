@@ -40,7 +40,7 @@ const OUTPUT_SCHEMAS = {
 } as const;
 
 /** What each route answers with, unless a test overrides it. */
-const DEFAULT_ROUTES: Array<[string, string]> = [
+const DEFAULT_ROUTES: [string, string][] = [
   ["service_backend=fts", "inside"],
   ["service_backend=metadata", "search-catalogue"],
   ["/metadata/", "item"],
@@ -57,14 +57,16 @@ interface Harness {
 
 const open = new Set<Harness>();
 
-async function connect(overrides: Array<[string, string]> = []): Promise<Harness> {
+async function connect(overrides: [string, string][] = []): Promise<Harness> {
   const urls: string[] = [];
   const routes = [...overrides, ...DEFAULT_ROUTES];
   const fetchImpl = (async (input: Parameters<typeof fetch>[0]) => {
     const url = String(input);
     urls.push(url);
     for (const [needle, name] of routes) {
-      if (url.includes(needle)) return jsonResponse(fixture(name));
+      if (url.includes(needle)) {
+        return jsonResponse(fixture(name));
+      }
     }
     throw new Error(`the contract test made an unrouted request to ${url}`);
   }) as unknown as typeof fetch;
@@ -91,12 +93,14 @@ async function connect(overrides: Array<[string, string]> = []): Promise<Harness
 }
 
 afterEach(async () => {
-  for (const harness of open) await harness.close();
+  for (const harness of open) {
+    await harness.close();
+  }
   open.clear();
 });
 
 /** The arguments each tool is exercised with, one call per tool. */
-const CALLS: Array<[string, Record<string, unknown>]> = [
+const CALLS: [string, Record<string, unknown>][] = [
   ["search_inside", { query: '"the lamps went out"' }],
   ["search_items", { query: "orchard" }],
   ["get_item", { identifier: "the-glass-orchard-1971", sections: ["basic", "files"] }],

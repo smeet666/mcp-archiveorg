@@ -131,7 +131,7 @@ describe("toSearchResults, the empty result", () => {
 });
 
 describe("toSearchResults, the shape that cannot be recognised", () => {
-  const unrecognisable: Array<[string, unknown]> = [
+  const unrecognisable: [string, unknown][] = [
     ["a response with no body node", fixture("search-no-body")],
     ["null", null],
     ["a bare string", "service unavailable"],

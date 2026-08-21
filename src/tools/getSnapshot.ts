@@ -117,7 +117,9 @@ export async function runGetSnapshot(
     const { data, cached } = read;
 
     const notes: string[] = [];
-    if (cached) notes.push("Served from this server's short-lived in-memory cache.");
+    if (cached) {
+      notes.push("Served from this server's short-lived in-memory cache.");
+    }
 
     const gap =
       dateSetAside && at !== undefined ? wholeDays(data.capturedAt, at) : data.daysFromRequested;

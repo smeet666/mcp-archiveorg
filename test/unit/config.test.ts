@@ -34,14 +34,19 @@ let stderr: ReturnType<typeof vi.spyOn>;
 
 beforeEach(() => {
   saved = Object.fromEntries(IA_KEYS.map((key) => [key, process.env[key]]));
-  for (const key of IA_KEYS) delete process.env[key];
+  for (const key of IA_KEYS) {
+    delete process.env[key];
+  }
   stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
 });
 
 afterEach(() => {
   for (const [key, value] of Object.entries(saved)) {
-    if (value === undefined) delete process.env[key];
-    else process.env[key] = value;
+    if (value === undefined) {
+      delete process.env[key];
+    } else {
+      process.env[key] = value;
+    }
   }
   stderr.mockRestore();
 });
@@ -99,7 +104,7 @@ describe("loadConfig, a caller who says who they are", () => {
 });
 
 describe("loadConfig, a value that cannot be read", () => {
-  const badValues: Array<[string, string, keyof ReturnType<typeof loadConfig>, unknown]> = [
+  const badValues: [string, string, keyof ReturnType<typeof loadConfig>, unknown][] = [
     ["IA_MIN_INTERVAL_MS", "soon", "minIntervalMs", 1000],
     ["IA_MIN_INTERVAL_MS", "1.5", "minIntervalMs", 1000],
     ["IA_TIMEOUT_MS", "", "timeoutMs", 20_000],

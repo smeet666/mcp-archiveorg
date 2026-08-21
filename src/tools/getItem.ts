@@ -118,7 +118,9 @@ export async function runGetItem(client: ArchiveClient, args: GetItemArgs): Prom
     const { identifier, spaceRemoved } = readIdentifier(args.identifier);
     const { data, cached } = await client.getItem(identifier);
     const notes: string[] = [];
-    if (cached) notes.push("Served from this server's short-lived in-memory cache.");
+    if (cached) {
+      notes.push("Served from this server's short-lived in-memory cache.");
+    }
     if (spaceRemoved) {
       // An identifier is matched exactly, so a caller who is not told that the
       // space was set aside keeps the padded form for every later call.
@@ -178,7 +180,9 @@ export async function runGetItem(client: ArchiveClient, args: GetItemArgs): Prom
       }
     }
 
-    if (wanted.has("full_metadata")) structured.full_metadata = data.raw ?? {};
+    if (wanted.has("full_metadata")) {
+      structured.full_metadata = data.raw ?? {};
+    }
 
     if (!data.licenseUrl) {
       notes.push(
@@ -196,13 +200,16 @@ export async function runGetItem(client: ArchiveClient, args: GetItemArgs): Prom
       `Files: ${data.fileCount}${data.totalBytes === null ? "" : ` · ${Math.round(data.totalBytes / 1024)} KB`}`,
     ].filter(Boolean);
 
-    if (structured.description) lines.push("", String(structured.description));
+    if (structured.description) {
+      lines.push("", String(structured.description));
+    }
 
     const files = structured.files as Array<{ name: string; format: string | null }> | undefined;
     if (files && files.length > 0) {
       lines.push("", "Files:");
-      for (const file of files)
+      for (const file of files) {
         lines.push(`  ${file.name}${file.format ? ` (${file.format})` : ""}`);
+      }
     }
 
     return ok(structured, lines.join("\n"), { notes, sourceUrl: data.sourceUrl });

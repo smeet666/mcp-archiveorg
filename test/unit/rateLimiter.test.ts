@@ -80,7 +80,9 @@ describe("RateLimiter, serialising", () => {
     let overlapped = false;
     const task = async () => {
       inFlight += 1;
-      if (inFlight > 1) overlapped = true;
+      if (inFlight > 1) {
+        overlapped = true;
+      }
       await sleep(10);
       inFlight -= 1;
       finished += 1;
@@ -187,7 +189,9 @@ describe("RateLimiter, push-back", () => {
 
   it("stops widening at the ceiling, so a request is never left looking hung", () => {
     const limiter = new RateLimiter({ intervalMs: INTERVAL, maxIntervalMs: 200 });
-    for (let i = 0; i < 20; i += 1) limiter.pushBack();
+    for (let i = 0; i < 20; i += 1) {
+      limiter.pushBack();
+    }
     expect(limiter.currentIntervalMs, "the ceiling is the widest the gap may become").toBe(200);
   });
 
@@ -247,7 +251,9 @@ describe("RateLimiter, recovery", () => {
 
   it("never narrows below the interval it was configured with", () => {
     const limiter = new RateLimiter({ intervalMs: INTERVAL });
-    for (let i = 0; i < 200; i += 1) limiter.succeeded();
+    for (let i = 0; i < 200; i += 1) {
+      limiter.succeeded();
+    }
     expect(
       limiter.currentIntervalMs,
       "a long run of quiet answers is not a reason to go faster than the configured pace",
@@ -257,7 +263,9 @@ describe("RateLimiter, recovery", () => {
   it("starts widening again from the base after a full recovery", () => {
     const limiter = new RateLimiter({ intervalMs: INTERVAL });
     limiter.pushBack();
-    for (let i = 0; i < 200; i += 1) limiter.succeeded();
+    for (let i = 0; i < 200; i += 1) {
+      limiter.succeeded();
+    }
     expect(limiter.currentIntervalMs).toBe(INTERVAL);
     limiter.pushBack();
     expect(

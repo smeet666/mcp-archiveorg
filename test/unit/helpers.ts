@@ -109,7 +109,7 @@ export interface FetchCall {
  * A route is matched on a substring of the URL, so a test states the part of
  * the address that identifies the route and ignores the query string.
  */
-export function routedFetch(routes: Array<[string, unknown]>): {
+export function routedFetch(routes: [string, unknown][]): {
   fetchImpl: typeof fetch;
   calls: FetchCall[];
 } {
@@ -121,7 +121,9 @@ export function routedFetch(routes: Array<[string, unknown]>): {
     const url = String(input);
     calls.push({ url, init });
     for (const [needle, body] of routes) {
-      if (url.includes(needle)) return jsonResponse(body);
+      if (url.includes(needle)) {
+        return jsonResponse(body);
+      }
     }
     throw new Error(`no fixture routed for ${url}`);
   }) as unknown as typeof fetch;
@@ -145,7 +147,9 @@ export function scriptedFetch(steps: Array<() => Response | Promise<Response>>):
     const step = steps[Math.min(index, steps.length - 1)];
     index += 1;
     at.push(Date.now());
-    if (!step) throw new Error("scriptedFetch ran out of steps");
+    if (!step) {
+      throw new Error("scriptedFetch ran out of steps");
+    }
     return step();
   }) as unknown as typeof fetch;
   return { fetchImpl, count: () => index, at };
@@ -156,7 +160,9 @@ export function hangingFetch(): typeof fetch {
   return (async (_input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) =>
     new Promise<Response>((_resolve, reject) => {
       const signal = init?.signal;
-      if (!signal) return;
+      if (!signal) {
+        return;
+      }
       if (signal.aborted) {
         reject(new DOMException("The operation was aborted.", "AbortError"));
         return;

@@ -189,7 +189,9 @@ export async function runSearchBooks(
     const { data, cached, skipped } = await client.searchBooks(criteria, args.limit, args.page);
 
     const notes: string[] = [];
-    if (cached) notes.push("Served from this server's short-lived in-memory cache.");
+    if (cached) {
+      notes.push("Served from this server's short-lived in-memory cache.");
+    }
     if (skipped) {
       notes.push(`${skipped} work(s) came back without a title or a key and were left out.`);
     }
@@ -210,7 +212,9 @@ export async function runSearchBooks(
     }));
 
     const outOfRange = pastLastPage(data.total, args.limit, args.page);
-    if (outOfRange) notes.push(outOfRange);
+    if (outOfRange) {
+      notes.push(outOfRange);
+    }
 
     // An answer holding no work is an answer about where this search looked.
     // Every criterion given has to hold at once, so one value the catalogue
@@ -328,18 +332,32 @@ export async function runSearchBooks(
  */
 function describeCriteria(args: SearchBooksArgs): string {
   const parts: string[] = [];
-  if (args.query) parts.push(`the words ${args.query}`);
-  if (args.subject) parts.push(`subject ${args.subject}`);
-  if (args.place) parts.push(`set in ${args.place}`);
-  if (args.time) parts.push(`about the period ${args.time}`);
-  if (args.person) parts.push(`about ${args.person}`);
-  if (args.language) parts.push(`in ${args.language}`);
+  if (args.query) {
+    parts.push(`the words ${args.query}`);
+  }
+  if (args.subject) {
+    parts.push(`subject ${args.subject}`);
+  }
+  if (args.place) {
+    parts.push(`set in ${args.place}`);
+  }
+  if (args.time) {
+    parts.push(`about the period ${args.time}`);
+  }
+  if (args.person) {
+    parts.push(`about ${args.person}`);
+  }
+  if (args.language) {
+    parts.push(`in ${args.language}`);
+  }
   if (args.year_from !== undefined || args.year_to !== undefined) {
     parts.push(`published ${args.year_from ?? "any time"} to ${args.year_to ?? "now"}`);
   }
   if (args.pages_min !== undefined || args.pages_max !== undefined) {
     parts.push(`${args.pages_min ?? 1} to ${args.pages_max ?? "any"} pages`);
   }
-  if (args.sort !== "relevance") parts.push(`by ${args.sort}`);
+  if (args.sort !== "relevance") {
+    parts.push(`by ${args.sort}`);
+  }
   return parts.join(", ");
 }

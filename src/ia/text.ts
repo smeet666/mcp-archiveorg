@@ -183,7 +183,11 @@ const FOLDED: Readonly<Record<string, string>> = (() => {
     byFold.set(fold, byFold.has(fold) ? null : character);
   }
   const unambiguous: Record<string, string> = {};
-  for (const [fold, character] of byFold) if (character !== null) unambiguous[fold] = character;
+  for (const [fold, character] of byFold) {
+    if (character !== null) {
+      unambiguous[fold] = character;
+    }
+  }
   return unambiguous;
 })();
 
@@ -201,7 +205,9 @@ function fromCodePoint(code: number): string | null {
  * "&Ecirc;", and a second pass would turn it into a letter nobody typed.
  */
 export function decodeEntities(text: string): string {
-  if (!text.includes("&")) return text;
+  if (!text.includes("&")) {
+    return text;
+  }
   return text.replace(ESCAPE, (whole, body: string) => {
     if (body.startsWith("#")) {
       const hex = body[1] === "x" || body[1] === "X";
@@ -240,7 +246,9 @@ const HTML_BREAK =
  * short.
  */
 export function readProse(text: string): string {
-  if (!text.includes("<")) return decodeEntities(text).trim();
+  if (!text.includes("<")) {
+    return decodeEntities(text).trim();
+  }
   const broken = text.replace(HTML_BREAK, "\n").replace(HTML_TAG, "");
   return decodeEntities(broken)
     .replace(/[ \t]+\n/g, "\n")

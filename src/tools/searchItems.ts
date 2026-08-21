@@ -105,15 +105,17 @@ export async function runSearchItems(
     const { data, cached, skipped } = await client.searchItems({
       query: args.query,
       ...(args.media_type ? { mediaType: args.media_type } : {}),
-      ...(args.year_from !== undefined ? { yearFrom: args.year_from } : {}),
-      ...(args.year_to !== undefined ? { yearTo: args.year_to } : {}),
+      ...(args.year_from === undefined ? {} : { yearFrom: args.year_from }),
+      ...(args.year_to === undefined ? {} : { yearTo: args.year_to }),
       sort: args.sort,
       limit: args.limit,
       page: args.page,
     });
 
     const notes: string[] = [];
-    if (cached) notes.push("Served from this server's short-lived in-memory cache.");
+    if (cached) {
+      notes.push("Served from this server's short-lived in-memory cache.");
+    }
     // The words that reached the catalogue are not always the words that were
     // typed, and a caller reading the rows against the query has no other way
     // of knowing which of the two they are looking at.
@@ -124,7 +126,9 @@ export async function runSearchItems(
       );
     }
     const outOfRange = pastLastPage(data.total, args.limit, args.page);
-    if (outOfRange) notes.push(outOfRange);
+    if (outOfRange) {
+      notes.push(outOfRange);
+    }
     if (skipped) {
       notes.push(
         `${skipped} row(s) came back in a shape this server could not read and were left out.`,
@@ -196,7 +200,9 @@ export async function runSearchItems(
     const searchedWords = args.query.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [];
     const matchedInFiledTitle = data.items.filter((item) => {
       const filed = item.titleAsFiled?.toLowerCase();
-      if (!filed) return false;
+      if (!filed) {
+        return false;
+      }
       const shown = (item.title ?? "").toLowerCase();
       return searchedWords.some((word) => filed.includes(word) && !shown.includes(word));
     }).length;

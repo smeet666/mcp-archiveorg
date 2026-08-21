@@ -20,7 +20,9 @@ import {
 function withQuery(base: string, params: Record<string, string | number | undefined>): string {
   const url = new URL(base);
   for (const [key, value] of Object.entries(params)) {
-    if (value === undefined || value === "") continue;
+    if (value === undefined || value === "") {
+      continue;
+    }
     url.searchParams.set(key, String(value));
   }
   return url.toString();
@@ -56,22 +58,30 @@ export function foldAmpersands(query: string): { query: string; folded: string[]
   const parts = query.split('"');
   const rewritten = parts.map((part, index) => {
     const quoted = index % 2 === 1;
-    if (!part.includes("&")) return part;
+    if (!part.includes("&")) {
+      return part;
+    }
 
     if (quoted) {
-      if (!/&/.test(part)) return part;
+      if (!/&/.test(part)) {
+        return part;
+      }
       const read = part
         .replace(/&+/g, " ")
         .replace(/\s{2,}/g, " ")
         .trim();
-      if (read !== part) folded.push(part);
+      if (read !== part) {
+        folded.push(part);
+      }
       return read;
     }
 
     return part
       .split(/(\s+)/)
       .map((token) => {
-        if (/^\s*$/.test(token) || !/\w&|&\w/.test(token) || token.includes("&&")) return token;
+        if (/^\s*$/.test(token) || !/\w&|&\w/.test(token) || token.includes("&&")) {
+          return token;
+        }
         // A field name before the colon is query syntax rather than words to
         // match, so it stays outside the quotes it would otherwise be searched
         // as part of.
@@ -100,7 +110,9 @@ export function foldAmpersands(query: string): { query: string; folded: string[]
  */
 export function catalogueUrl(q: CatalogueQuery): string {
   const clauses = [`(${foldAmpersands(q.query).query})`];
-  if (q.mediaType) clauses.push(`mediatype:${q.mediaType}`);
+  if (q.mediaType) {
+    clauses.push(`mediatype:${q.mediaType}`);
+  }
   if (q.yearFrom !== undefined || q.yearTo !== undefined) {
     const from = q.yearFrom ?? "*";
     const to = q.yearTo ?? "*";
@@ -114,8 +126,12 @@ export function catalogueUrl(q: CatalogueQuery): string {
   url.searchParams.set("hits_per_page", String(q.limit));
   url.searchParams.set("page", String(q.page));
   url.searchParams.set("aggregations", "false");
-  if (sort) url.searchParams.append("sort[]", sort);
-  for (const field of Object.values(HIT_FIELD)) url.searchParams.append("fields[]", field);
+  if (sort) {
+    url.searchParams.append("sort[]", sort);
+  }
+  for (const field of Object.values(HIT_FIELD)) {
+    url.searchParams.append("fields[]", field);
+  }
   return url.toString();
 }
 
@@ -189,10 +205,14 @@ const range = (field: string, from?: number, to?: number) =>
 
 export const booksUrl = (criteria: BookCriteria, limit: number, page: number) => {
   const terms: string[] = [];
-  if (criteria.query) terms.push(criteria.query);
+  if (criteria.query) {
+    terms.push(criteria.query);
+  }
   for (const [name, field] of Object.entries(BOOK_CRITERION)) {
     const value = criteria[name as keyof typeof BOOK_CRITERION];
-    if (value) terms.push(`${field}:${phrase(value)}`);
+    if (value) {
+      terms.push(`${field}:${phrase(value)}`);
+    }
   }
   if (criteria.year_from !== undefined || criteria.year_to !== undefined) {
     terms.push(range(BOOK_FIELD.firstYear, criteria.year_from, criteria.year_to));
@@ -224,7 +244,9 @@ export function toArchiveStamp(date: Date): string {
 /** Reads a stamp back, returning null rather than an invalid date. */
 export function fromArchiveStamp(stamp: string): Date | null {
   const m = /^(\d{4})(\d{2})(\d{2})(\d{2})?(\d{2})?(\d{2})?$/.exec(stamp.trim());
-  if (!m) return null;
+  if (!m) {
+    return null;
+  }
   const date = new Date(
     Date.UTC(
       Number(m[1]),

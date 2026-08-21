@@ -57,14 +57,20 @@ const RETRIES_AFTER_SILENCE = 1;
  * Returns null when it says neither, so the caller falls back to its own wait.
  */
 export function parseRetryAfter(value: string | null, now = Date.now()): number | null {
-  if (!value) return null;
+  if (!value) {
+    return null;
+  }
   const trimmed = value.trim();
 
   const seconds = Number(trimmed);
-  if (Number.isFinite(seconds) && seconds >= 0) return Math.round(seconds * 1000);
+  if (Number.isFinite(seconds) && seconds >= 0) {
+    return Math.round(seconds * 1000);
+  }
 
   const at = Date.parse(trimmed);
-  if (Number.isNaN(at)) return null;
+  if (Number.isNaN(at)) {
+    return null;
+  }
   return Math.max(0, at - now);
 }
 
@@ -157,7 +163,9 @@ export function statedReason(body: string): string | null {
   const response = (parsed as { response?: unknown })?.response as
     | { error?: { message?: unknown }; errors?: Array<{ message?: unknown }> }
     | undefined;
-  if (!response) return null;
+  if (!response) {
+    return null;
+  }
 
   const listed = Array.isArray(response.errors)
     ? response.errors
@@ -166,7 +174,9 @@ export function statedReason(body: string): string | null {
           (message): message is string => typeof message === "string" && message.trim() !== "",
         )
     : [];
-  if (listed.length > 0) return listed.join("; ");
+  if (listed.length > 0) {
+    return listed.join("; ");
+  }
 
   const single = response.error?.message;
   return typeof single === "string" && single.trim() !== "" ? single : null;
@@ -285,7 +295,9 @@ export async function fetchText(options: FetchOptions): Promise<string> {
       clearTimeout(deadline);
 
       // An error this module raised on purpose already says what happened.
-      if (error instanceof Error && error.name === "ArchiveError") throw error;
+      if (error instanceof Error && error.name === "ArchiveError") {
+        throw error;
+      }
 
       if (error instanceof Error && error.name === "AbortError") {
         lastError = error;

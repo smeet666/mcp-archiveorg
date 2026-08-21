@@ -61,7 +61,9 @@ export async function runListSnapshots(
     const { data, cached, skipped } = await client.listSnapshots(address, args.limit, args.cursor);
 
     const notes: string[] = [];
-    if (cached) notes.push("Served from this server's short-lived in-memory cache.");
+    if (cached) {
+      notes.push("Served from this server's short-lived in-memory cache.");
+    }
 
     if (skipped) {
       notes.push(

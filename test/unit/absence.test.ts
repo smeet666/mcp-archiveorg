@@ -45,7 +45,9 @@ const capture = (over: Partial<NearestSnapshot> = {}): NearestSnapshot => ({
 const holdsCapturesButNotAtADate = (): ArchiveClient =>
   ({
     getSnapshot: async (target: string, at?: Date) => {
-      if (at !== undefined) throw notFound(`The Wayback Machine holds no capture of ${target}.`);
+      if (at !== undefined) {
+        throw notFound(`The Wayback Machine holds no capture of ${target}.`);
+      }
       return { data: capture(), cached: false };
     },
   }) as unknown as ArchiveClient;
@@ -224,7 +226,7 @@ const historyClient = (snapshots: Snapshot[]): ArchiveClient =>
         rowsReceived: snapshots.length,
         resumeKey: null,
         first: snapshots[0]?.capturedAt ?? null,
-        last: snapshots[snapshots.length - 1]?.capturedAt ?? null,
+        last: snapshots.at(-1)?.capturedAt ?? null,
         snapshots,
       },
       cached: false,
@@ -266,7 +268,7 @@ describe("list_snapshots over several address forms", () => {
       limit: 20,
     } as never)) as unknown as Answer;
 
-    const snapshots = answer.structuredContent?.snapshots as Array<Record<string, unknown>>;
+    const snapshots = answer.structuredContent?.snapshots as Record<string, unknown>[];
     expect(snapshots.map((snapshot) => snapshot.address)).toContain("http://www.example.com/");
   });
 
