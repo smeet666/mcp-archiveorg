@@ -176,9 +176,7 @@ export function readAddress(value: string): string {
   // Everything before the first slash, question mark or hash is the host, which
   // is the part the index resolves. A host is a name carrying a dot, a numeric
   // address, or the machine this server runs on; anything else names no site.
-  const host = trimmed
-    .replace(/^[a-z][a-z0-9+.-]*:\/\//i, "")
-    .split(/[/?#]/)[0]!
+  const host = (trimmed.replace(/^[a-z][a-z0-9+.-]*:\/\//i, "").split(/[/?#]/)[0] ?? "")
     .replace(/^[^@]*@/, "")
     .replace(/:\d+$/, "");
   const namesASite =

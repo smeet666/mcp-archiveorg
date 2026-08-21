@@ -15,7 +15,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ArchiveError } from "../../src/errors.js";
+import type { ArchiveError } from "../../src/errors.js";
 import type { ArchiveClient } from "../../src/ia/client.js";
 import { fetchJson } from "../../src/ia/http.js";
 import { toItemDetail } from "../../src/ia/parse.js";

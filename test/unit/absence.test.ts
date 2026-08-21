@@ -148,7 +148,7 @@ describe("get_snapshot, a capture of a neighbouring address", () => {
     } as never)) as unknown as Answer;
 
     expect(
-      (answer.structuredContent?.snapshot as Record<string, unknown>).address,
+      (answer.structuredContent?.snapshot as Record<string, unknown> | undefined)?.address,
       "the payload has to carry what the capture is of, or nothing can tell the two apart",
     ).toBe("https://example.com/");
   });
