@@ -46,9 +46,12 @@ const asObject = (value: unknown): Json | null =>
  * how many the item carries. Both are read the same way.
  */
 function asStrings(value: unknown): string[] {
-  if (typeof value === "string") return value.trim() === "" ? [] : [value];
-  if (Array.isArray(value))
+  if (typeof value === "string") {
+    return value.trim() === "" ? [] : [value];
+  }
+  if (Array.isArray(value)) {
     return value.filter((v): v is string => typeof v === "string" && v.trim() !== "");
+  }
   return [];
 }
 
@@ -76,7 +79,9 @@ const sourceTexts = (value: unknown): string[] =>
  */
 const proseText = (value: unknown): string | null => {
   const raw = asString(value);
-  if (raw === null) return null;
+  if (raw === null) {
+    return null;
+  }
   const read = readProse(raw);
   return read === "" ? null : read;
 };
@@ -97,12 +102,18 @@ function filedAs(value: unknown, read: string | null): string | null {
 }
 
 function asNumber(value: unknown): number | null {
-  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
   if (typeof value === "string" && value.trim() !== "") {
     const n = Number(value);
-    if (Number.isFinite(n)) return n;
+    if (Number.isFinite(n)) {
+      return n;
+    }
   }
-  if (Array.isArray(value)) return asNumber(value[0]);
+  if (Array.isArray(value)) {
+    return asNumber(value[0]);
+  }
   return null;
 }
 
@@ -122,7 +133,9 @@ function asYear(value: unknown): number | null {
       : null;
 
   const direct = asNumber(value);
-  if (direct !== null) return plausible(direct);
+  if (direct !== null) {
+    return plausible(direct);
+  }
 
   const text = asString(value);
   const m = text ? /(\d{4})/.exec(text) : null;
@@ -180,11 +193,15 @@ function searchBody(payload: unknown, url: string): Json {
  */
 function hitTotal(hits: Json, url: string): number {
   const direct = asNumber(hits.total);
-  if (direct !== null) return direct;
+  if (direct !== null) {
+    return direct;
+  }
   // Some answers count in a nested object rather than a bare number.
   const nested = asObject(hits.total);
   const inner = nested ? asNumber(nested.value) : null;
-  if (inner !== null) return inner;
+  if (inner !== null) {
+    return inner;
+  }
   throw parseFailure("The search answer carried no readable count of matches.", { url });
 }
 
@@ -230,7 +247,9 @@ export function toSearchResults(
     });
   }
 
-  if (skipped > 0) onSkip(skipped);
+  if (skipped > 0) {
+    onSkip(skipped);
+  }
   if (rows.length > 0 && items.length === 0) {
     throw parseFailure(`${rows.length} results came back and none could be read.`, { url });
   }
@@ -283,7 +302,9 @@ export function toInsideResults(
     });
   }
 
-  if (skipped > 0) onSkip(skipped);
+  if (skipped > 0) {
+    onSkip(skipped);
+  }
   if (rows.length > 0 && found.length === 0) {
     throw parseFailure(`${rows.length} matches came back and none could be read.`, { url });
   }
@@ -292,7 +313,9 @@ export function toInsideResults(
 
 export function toItemDetail(payload: unknown, identifier: string, url: string): ItemDetail {
   const root = asObject(payload);
-  if (!root) throw parseFailure("The item answer was not an object.", { url });
+  if (!root) {
+    throw parseFailure("The item answer was not an object.", { url });
+  }
 
   /**
    * The Archive addresses an item by the exact spelling of its identifier, and
@@ -329,19 +352,25 @@ export function toItemDetail(payload: unknown, identifier: string, url: string):
   // something this parser cannot read is a failure to read, and reporting it as
   // an absence would state that the Archive holds nothing under this name.
   if (metadata === null) {
-    if (Object.keys(root).length === 0) noSuchItem();
+    if (Object.keys(root).length === 0) {
+      noSuchItem();
+    }
     throw parseFailure(
       `The record for "${identifier}" came back without the metadata block this server reads.`,
       { url },
     );
   }
-  if (Object.keys(metadata).length === 0) noSuchItem();
+  if (Object.keys(metadata).length === 0) {
+    noSuchItem();
+  }
 
   const rawFiles = Array.isArray(root.files) ? root.files.map(asObject) : [];
   const files: ItemFile[] = [];
   for (const entry of rawFiles) {
     const name = entry ? asString(entry.name) : null;
-    if (!name) continue;
+    if (!name) {
+      continue;
+    }
     files.push({
       name,
       format: asString(entry?.format),
@@ -427,6 +456,29 @@ export function toNearestSnapshot(
 }
 
 /**
+ * The captures, with the key to ask for more taken off the end.
+ *
+ * The key arrives as a final one-cell row, separated from the captures by a
+ * blank one. Neither is a capture, and neither is an unreadable row: counted as
+ * either, they would show up as two captures the index never made.
+ */
+function takeResumeKey(rows: unknown[]): { dataRows: unknown[]; resumeKey: string | null } {
+  const tail = rows.at(-1);
+  const separator = rows.at(-2);
+
+  const carriesKey =
+    Array.isArray(tail) && tail.length === 1 && Array.isArray(separator) && separator.length === 0;
+  if (!carriesKey) {
+    return { dataRows: rows, resumeKey: null };
+  }
+
+  return {
+    dataRows: rows.slice(0, -2),
+    resumeKey: typeof tail[0] === "string" ? tail[0] : null,
+  };
+}
+
+/**
  * The capture index answers as rows of an array, the first being the column
  * names. Reading positions by name rather than by index keeps a reordering
  * upstream from silently swapping dates and statuses.
@@ -459,26 +511,14 @@ export function toSnapshotHistory(
   const columns = header.map(String);
   const at = (row: unknown[], name: string): string | null => {
     const index = columns.indexOf(name);
-    if (index < 0) return null;
+    if (index < 0) {
+      return null;
+    }
     const value = row[index];
     return typeof value === "string" ? value : null;
   };
 
-  // The key arrives as a final one-cell row, separated from the captures by a
-  // blank one. Neither is a capture, and neither is an unreadable row.
-  let dataRows = payload.slice(1);
-  let resumeKey: string | null = null;
-  const tail = dataRows[dataRows.length - 1];
-  const separator = dataRows[dataRows.length - 2];
-  if (
-    Array.isArray(tail) &&
-    tail.length === 1 &&
-    Array.isArray(separator) &&
-    separator.length === 0
-  ) {
-    resumeKey = typeof tail[0] === "string" ? tail[0] : null;
-    dataRows = dataRows.slice(0, -2);
-  }
+  const { dataRows, resumeKey } = takeResumeKey(payload.slice(1));
 
   const snapshots: Snapshot[] = [];
   let skipped = 0;
@@ -507,10 +547,14 @@ export function toSnapshotHistory(
     const alreadyHave = snapshots.some(
       (kept) => kept.capturedAt === snapshot.capturedAt && kept.url === snapshot.url,
     );
-    if (!alreadyHave) snapshots.push(snapshot);
+    if (!alreadyHave) {
+      snapshots.push(snapshot);
+    }
   }
 
-  if (skipped > 0) onSkip(skipped);
+  if (skipped > 0) {
+    onSkip(skipped);
+  }
   if (dataRows.length > 0 && snapshots.length === 0) {
     throw parseFailure("The capture index answered with rows this server could not read.", { url });
   }
@@ -524,7 +568,7 @@ export function toSnapshotHistory(
     rowsReceived: dataRows.length,
     resumeKey,
     first: dates[0] ?? null,
-    last: dates[dates.length - 1] ?? null,
+    last: dates.at(-1) ?? null,
     snapshots,
   };
 }
@@ -562,7 +606,9 @@ export function toBooks(
     });
   }
 
-  if (skipped > 0) onSkip(skipped);
+  if (skipped > 0) {
+    onSkip(skipped);
+  }
   if (root.docs.length > 0 && books.length === 0) {
     throw parseFailure(`${root.docs.length} works came back and none could be read.`, { url });
   }

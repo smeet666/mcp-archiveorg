@@ -23,6 +23,152 @@ import {
 import type { ToolResult } from "./shared.js";
 
 /**
+ * Why a page of rows came back empty.
+ *
+ * A page past the last one and a catalogue holding nothing are different
+ * statements about the Archive.
+ */
+function nothingOnThisPage(total: number, page: number, query: string): string {
+  if (total > 0) {
+    return `No row on page ${page} for "${query}", of ${counted(total, "item")} matching.`;
+  }
+  return `Nothing in the catalogue for "${query}".`;
+}
+
+/**
+ * What ordering by date, or narrowing to a span of years, rests on.
+ *
+ * Both read the same catalogue field, so either one turns the answer into a
+ * claim about that field: which rows were kept, or which came first. The field
+ * is declared by whoever deposited the item and this server holds no way to
+ * check it, so what it cannot carry travels with any answer resting on it,
+ * rather than the rows being reordered or filtered on a value the source does
+ * not hold.
+ */
+function notesOnTheOrderAndTheRange(
+  items: ReadonlyArray<{ year: number | null }>,
+  args: { sort: string; year_from?: number | undefined; year_to?: number | undefined },
+): string[] {
+  const notes: string[] = [];
+
+  // A date order and a year range read the same catalogue field, so either
+  // one turns the answer into a claim about that field: which rows were kept,
+  // or which came first. The field is declared by whoever deposited the item
+  // and the server holds no way to check it, so what it cannot carry travels
+  // with any answer resting on it, rather than being reordered or filtered
+  // out on a value the source does not hold.
+  const orderedByDate = args.sort === "oldest" || args.sort === "newest";
+  const rangeAsked = args.year_from !== undefined || args.year_to !== undefined;
+  const undated = items.filter((item) => item.year === null).length;
+  if (items.length > 0 && orderedByDate) {
+    notes.push(
+      args.sort === "oldest"
+        ? "'oldest' ranks on the catalogue's date field, which whoever deposited an item typed in."
+        : "'newest' ranks on the catalogue's date field, which whoever deposited an item typed in. A date typed centuries ahead of now is as real to the index as any other, so items carrying one head this order rather than recent ones.",
+    );
+    // The rows a placeholder or a fragment puts at the head of the order are
+    // the rows carrying no year this server can read. A page holding none of
+    // them is a page this explains nothing on.
+    if (args.sort === "oldest" && undated > 0) {
+      notes.push(
+        'Two kinds of row head this order without being early: an item the Archive holds no date for carries a placeholder at the very start of the calendar, and an item whose date is a fragment such as "15" for a fifteenth-century manuscript is filed at the year 15. The index sorts both as real dates.',
+      );
+    }
+  }
+  if (items.length > 0 && rangeAsked) {
+    notes.push(
+      "'year_from' and 'year_to' filter the catalogue's date field, which whoever deposited an item typed in. A row is here because that field fell in the range, which is a different claim from the item having been made then.",
+    );
+  }
+  if (items.length > 0 && (orderedByDate || rangeAsked)) {
+    const readsTwoWays =
+      (rangeAsked && (args.year_from ?? 1) < ERA_READS_TWO_WAYS_BEFORE) ||
+      items.some((item) => item.year !== null && item.year < ERA_READS_TWO_WAYS_BEFORE);
+    if (readsTwoWays) {
+      notes.push(
+        "That field carries no era: a date before the common era is stored as a year of it, so an object made in 1744 BCE reads as 1744, and a Babylonian tablet answers a search of the eighteenth century. Check a row against its source_url before dating what it holds.",
+      );
+    }
+    if (undated > 0) {
+      notes.push(
+        `${undated} of the ${items.length} rows shown carry no year this server could read, so nothing on those rows shows the date the catalogue filed them under` +
+          (orderedByDate
+            ? ", nor supports the place they hold in this order."
+            : ", nor shows them falling in the range asked for."),
+      );
+    }
+  }
+
+  // The index matches the text a record files, and that text is handed back
+  // read: the characters an escape names, the words a tag holds. A row whose
+  // filed title carries the words searched for while the title shown does not
+  // is a row with nothing on it to say why it is in the list.
+
+  return notes;
+}
+
+/**
+ * What the rows show, and what their shape does not say.
+ *
+ * The Archive files a title one way and shows it another, pages a count it
+ * publishes, and mixes kinds of material in one answer unless asked otherwise.
+ * A row absent from a page is not a row absent from the catalogue.
+ */
+function notesOnWhatTheRowsShow(
+  data: {
+    total: number;
+    items: ReadonlyArray<{ title?: string | null; titleAsFiled?: string | null }>;
+  },
+  args: { query: string; media_type?: string | undefined },
+  items: ReadonlyArray<{ media_type?: string | null }>,
+): string[] {
+  const notes: string[] = [];
+
+  const searchedWords = args.query.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [];
+  const matchedInFiledTitle = data.items.filter((item) => {
+    const filed = item.titleAsFiled?.toLowerCase();
+    if (!filed) {
+      return false;
+    }
+    const shown = (item.title ?? "").toLowerCase();
+    return searchedWords.some((word) => filed.includes(word) && !shown.includes(word));
+  }).length;
+  if (matchedInFiledTitle > 0) {
+    notes.push(
+      `${counted(matchedInFiledTitle, "row")} here ${agreeing(matchedInFiledTitle, "carries", "carry")} the words searched for in the text the record files rather than in the title shown: a title written with escapes such as "&nbsp;", or with markup, is handed back as the characters and the words those stand for.`,
+    );
+  }
+
+  if (data.total > items.length) {
+    notes.push(
+      `${counted(data.total, "item")} ${agreeing(data.total, "matches", "match")} and ${items.length} ${agreeing(items.length, "is", "are")} shown.`,
+    );
+  }
+  if (items.length > 0) {
+    notes.push(
+      "A match can name the query in its description rather than being the thing itself, and nothing in a row distinguishes the two. Check 'creator', or read the item, before attributing a result.",
+    );
+  }
+  if (data.total === 0) {
+    notes.push(
+      "Nothing in the catalogue matches. A search here reads titles and descriptions only, so a phrase from inside a book belongs in search_inside.",
+    );
+  }
+  if (!args.media_type && items.length > 1) {
+    const kinds = new Set(items.map((item) => item.media_type).filter(Boolean));
+    if (kinds.size > 1) {
+      notes.push(`These results mix ${[...kinds].join(", ")}. Set 'media_type' to keep one kind.`);
+    }
+  }
+
+  // An empty page and an empty catalogue arrive in the same shape, and only
+  // the total tells them apart, so the rendered line branches on it rather
+  // than on the rows.
+
+  return notes;
+}
+
+/**
  * The first year on which a date reads one way only.
  *
  * The catalogue's date field carries no era, so a year in it names two things
@@ -105,15 +251,17 @@ export async function runSearchItems(
     const { data, cached, skipped } = await client.searchItems({
       query: args.query,
       ...(args.media_type ? { mediaType: args.media_type } : {}),
-      ...(args.year_from !== undefined ? { yearFrom: args.year_from } : {}),
-      ...(args.year_to !== undefined ? { yearTo: args.year_to } : {}),
+      ...(args.year_from === undefined ? {} : { yearFrom: args.year_from }),
+      ...(args.year_to === undefined ? {} : { yearTo: args.year_to }),
       sort: args.sort,
       limit: args.limit,
       page: args.page,
     });
 
     const notes: string[] = [];
-    if (cached) notes.push("Served from this server's short-lived in-memory cache.");
+    if (cached) {
+      notes.push("Served from this server's short-lived in-memory cache.");
+    }
     // The words that reached the catalogue are not always the words that were
     // typed, and a caller reading the rows against the query has no other way
     // of knowing which of the two they are looking at.
@@ -124,7 +272,9 @@ export async function runSearchItems(
       );
     }
     const outOfRange = pastLastPage(data.total, args.limit, args.page);
-    if (outOfRange) notes.push(outOfRange);
+    if (outOfRange) {
+      notes.push(outOfRange);
+    }
     if (skipped) {
       notes.push(
         `${skipped} row(s) came back in a shape this server could not read and were left out.`,
@@ -141,104 +291,14 @@ export async function runSearchItems(
       source_url: item.sourceUrl,
     }));
 
-    // A date order and a year range read the same catalogue field, so either
-    // one turns the answer into a claim about that field: which rows were kept,
-    // or which came first. The field is declared by whoever deposited the item
-    // and the server holds no way to check it, so what it cannot carry travels
-    // with any answer resting on it, rather than being reordered or filtered
-    // out on a value the source does not hold.
-    const orderedByDate = args.sort === "oldest" || args.sort === "newest";
-    const rangeAsked = args.year_from !== undefined || args.year_to !== undefined;
-    const undated = items.filter((item) => item.year === null).length;
-    if (items.length > 0 && orderedByDate) {
-      notes.push(
-        args.sort === "oldest"
-          ? "'oldest' ranks on the catalogue's date field, which whoever deposited an item typed in."
-          : "'newest' ranks on the catalogue's date field, which whoever deposited an item typed in. A date typed centuries ahead of now is as real to the index as any other, so items carrying one head this order rather than recent ones.",
-      );
-      // The rows a placeholder or a fragment puts at the head of the order are
-      // the rows carrying no year this server can read. A page holding none of
-      // them is a page this explains nothing on.
-      if (args.sort === "oldest" && undated > 0) {
-        notes.push(
-          'Two kinds of row head this order without being early: an item the Archive holds no date for carries a placeholder at the very start of the calendar, and an item whose date is a fragment such as "15" for a fifteenth-century manuscript is filed at the year 15. The index sorts both as real dates.',
-        );
-      }
-    }
-    if (items.length > 0 && rangeAsked) {
-      notes.push(
-        "'year_from' and 'year_to' filter the catalogue's date field, which whoever deposited an item typed in. A row is here because that field fell in the range, which is a different claim from the item having been made then.",
-      );
-    }
-    if (items.length > 0 && (orderedByDate || rangeAsked)) {
-      const readsTwoWays =
-        (rangeAsked && (args.year_from ?? 1) < ERA_READS_TWO_WAYS_BEFORE) ||
-        items.some((item) => item.year !== null && item.year < ERA_READS_TWO_WAYS_BEFORE);
-      if (readsTwoWays) {
-        notes.push(
-          "That field carries no era: a date before the common era is stored as a year of it, so an object made in 1744 BCE reads as 1744, and a Babylonian tablet answers a search of the eighteenth century. Check a row against its source_url before dating what it holds.",
-        );
-      }
-      if (undated > 0) {
-        notes.push(
-          `${undated} of the ${items.length} rows shown carry no year this server could read, so nothing on those rows shows the date the catalogue filed them under` +
-            (orderedByDate
-              ? ", nor supports the place they hold in this order."
-              : ", nor shows them falling in the range asked for."),
-        );
-      }
-    }
+    notes.push(...notesOnTheOrderAndTheRange(items, args));
 
-    // The index matches the text a record files, and that text is handed back
-    // read: the characters an escape names, the words a tag holds. A row whose
-    // filed title carries the words searched for while the title shown does not
-    // is a row with nothing on it to say why it is in the list.
-    const searchedWords = args.query.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [];
-    const matchedInFiledTitle = data.items.filter((item) => {
-      const filed = item.titleAsFiled?.toLowerCase();
-      if (!filed) return false;
-      const shown = (item.title ?? "").toLowerCase();
-      return searchedWords.some((word) => filed.includes(word) && !shown.includes(word));
-    }).length;
-    if (matchedInFiledTitle > 0) {
-      notes.push(
-        `${counted(matchedInFiledTitle, "row")} here ${agreeing(matchedInFiledTitle, "carries", "carry")} the words searched for in the text the record files rather than in the title shown: a title written with escapes such as "&nbsp;", or with markup, is handed back as the characters and the words those stand for.`,
-      );
-    }
+    notes.push(...notesOnWhatTheRowsShow(data, args, items));
 
-    if (data.total > items.length) {
-      notes.push(
-        `${counted(data.total, "item")} ${agreeing(data.total, "matches", "match")} and ${items.length} ${agreeing(items.length, "is", "are")} shown.`,
-      );
-    }
-    if (items.length > 0) {
-      notes.push(
-        "A match can name the query in its description rather than being the thing itself, and nothing in a row distinguishes the two. Check 'creator', or read the item, before attributing a result.",
-      );
-    }
-    if (data.total === 0) {
-      notes.push(
-        "Nothing in the catalogue matches. A search here reads titles and descriptions only, so a phrase from inside a book belongs in search_inside.",
-      );
-    }
-    if (!args.media_type && items.length > 1) {
-      const kinds = new Set(items.map((item) => item.media_type).filter(Boolean));
-      if (kinds.size > 1) {
-        notes.push(
-          `These results mix ${[...kinds].join(", ")}. Set 'media_type' to keep one kind.`,
-        );
-      }
-    }
-
-    // An empty page and an empty catalogue arrive in the same shape, and only
-    // the total tells them apart, so the rendered line branches on it rather
-    // than on the rows.
     const body =
       items.length > 0
         ? `${items.length} of ${counted(data.total, "item")} for "${args.query}":\n${renderItems(items)}`
-        : data.total > 0
-          ? `No row on page ${args.page} for "${args.query}", of ${counted(data.total, "item")} matching.`
-          : `Nothing in the catalogue for "${args.query}".`;
+        : nothingOnThisPage(data.total, args.page, args.query);
 
     return ok({ query: args.query, total: data.total, page: args.page, items, notes }, body, {
       notes,

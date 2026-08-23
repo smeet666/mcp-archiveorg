@@ -75,7 +75,9 @@ export function ok(
 
   // A long run of notes must not crowd out the answer it qualifies.
   const noteLines = (options.notes ?? []).map((note) => `Note: ${note}`);
-  while (noteLines.length > 0 && noteLines.join("\n").length > MAX_TEXT_CHARS / 2) noteLines.pop();
+  while (noteLines.length > 0 && noteLines.join("\n").length > MAX_TEXT_CHARS / 2) {
+    noteLines.pop();
+  }
   const trailer = [...noteLines, credit].join("\n");
 
   const cut = "\n\n[shortened; the full result is in the structured output]";
@@ -99,7 +101,9 @@ export function toToolError(error: unknown): ToolResult {
       : new ArchiveError("network_error", error instanceof Error ? error.message : String(error));
 
   const lines = [`[${known.code}] ${known.message}`];
-  if (known.details.hint) lines.push(`Hint: ${known.details.hint}`);
+  if (known.details.hint) {
+    lines.push(`Hint: ${known.details.hint}`);
+  }
   return { content: [{ type: "text", text: lines.join("\n") }], isError: true };
 }
 
@@ -120,12 +124,14 @@ export function agreeing(n: number, singular: string, plural: string): string {
 }
 
 export function truncate(text: string, maxChars: number): string {
-  if (text.length <= maxChars) return text;
+  if (text.length <= maxChars) {
+    return text;
+  }
   return `${text.slice(0, Math.max(0, maxChars - 1)).trimEnd()}…`;
 }
 
 /** A compact listing, carrying what it takes to pick one item out of many. */
-export function renderItems(items: Array<z.infer<typeof itemSummarySchema>>): string {
+export function renderItems(items: z.infer<typeof itemSummarySchema>[]): string {
   return items
     .map((item, index) => {
       const bits = [
@@ -222,8 +228,12 @@ export function sameAddress(asked: string, captured: string): boolean {
  * range, so the wording travels only where it applies.
  */
 export function pastLastPage(total: number, limit: number, page: number): string | null {
-  if (total <= 0) return null;
+  if (total <= 0) {
+    return null;
+  }
   const last = Math.ceil(total / limit);
-  if (page <= last) return null;
+  if (page <= last) {
+    return null;
+  }
   return `Page ${page} is past the last page holding rows: ${total} match(es) at ${limit} per page fill ${last} page(s). This page is empty because of where it sits, and the matches are on the pages before it.`;
 }

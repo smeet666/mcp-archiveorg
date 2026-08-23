@@ -142,7 +142,7 @@ describe("fetchJson, statuses that are not retried", () => {
   // objects to and for one it declines to serve at that moment, and what
   // separates them is whether the body states a reason. The two cases are
   // covered below, each with the number of attempts it warrants.
-  const finals: Array<[number, string]> = [
+  const finals: [number, string][] = [
     [404, "the Archive answered, and holds nothing there"],
     [403, "a refusal on grounds a retry cannot alter"],
     [451, "a refusal on grounds a retry cannot alter"],

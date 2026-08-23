@@ -120,7 +120,7 @@ describe("toNearestSnapshot, nothing held", () => {
 });
 
 describe("toNearestSnapshot, the shape that cannot be recognised", () => {
-  const unrecognisable: Array<[string, unknown]> = [
+  const unrecognisable: [string, unknown][] = [
     ["null", null],
     ["a bare string", "bad gateway"],
     ["an answer with no snapshot block", { url: TARGET }],
@@ -238,7 +238,7 @@ describe("toSnapshotHistory, the empty result", () => {
 });
 
 describe("toSnapshotHistory, the shape that cannot be recognised", () => {
-  const unrecognisable: Array<[string, unknown]> = [
+  const unrecognisable: [string, unknown][] = [
     ["an object where rows were due", { rows: [] }],
     ["null", null],
     ["a bare string", "<html>error</html>"],

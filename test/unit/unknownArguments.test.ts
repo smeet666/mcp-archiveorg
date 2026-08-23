@@ -18,7 +18,7 @@ import { createServer } from "../../src/server.js";
 import { fixture, jsonResponse, silentLogger } from "./helpers.js";
 
 /** What each route answers with. */
-const ROUTES: Array<[string, string]> = [
+const ROUTES: [string, string][] = [
   ["service_backend=fts", "inside"],
   ["service_backend=metadata", "search-catalogue"],
   ["/metadata/", "item"],
@@ -28,7 +28,7 @@ const ROUTES: Array<[string, string]> = [
 ];
 
 /** One valid call per tool, so a refusal is never mistaken for a broken tool. */
-const CALLS: Array<[string, Record<string, unknown>]> = [
+const CALLS: [string, Record<string, unknown>][] = [
   ["search_inside", { query: '"the lamps went out"' }],
   ["search_items", { query: "orchard" }],
   ["get_item", { identifier: "the-glass-orchard-1971", sections: ["basic"] }],
@@ -43,7 +43,9 @@ async function connect(): Promise<Client> {
   const fetchImpl = (async (input: Parameters<typeof fetch>[0]) => {
     const url = String(input);
     for (const [needle, name] of ROUTES) {
-      if (url.includes(needle)) return jsonResponse(fixture(name));
+      if (url.includes(needle)) {
+        return jsonResponse(fixture(name));
+      }
     }
     throw new Error(`this suite made an unrouted request to ${url}`);
   }) as unknown as typeof fetch;
@@ -67,7 +69,9 @@ async function connect(): Promise<Client> {
 }
 
 afterEach(async () => {
-  for (const harness of open) await harness.close();
+  for (const harness of open) {
+    await harness.close();
+  }
   open.clear();
 });
 

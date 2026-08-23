@@ -43,7 +43,9 @@ async function reachable<T>(ctx: TestContext, call: () => Promise<T>): Promise<T
   try {
     return await call();
   } catch (error) {
-    if (upstreamSilent(error)) ctx.skip(`the Internet Archive did not answer: ${error.message}`);
+    if (upstreamSilent(error)) {
+      ctx.skip(`the Internet Archive did not answer: ${error.message}`);
+    }
     throw error;
   }
 }
@@ -54,7 +56,9 @@ async function outcomeOf(ctx: TestContext, call: () => Promise<unknown>): Promis
     () => null,
     (error: unknown) => error,
   );
-  if (upstreamSilent(outcome)) ctx.skip(`the Internet Archive did not answer: ${outcome.message}`);
+  if (upstreamSilent(outcome)) {
+    ctx.skip(`the Internet Archive did not answer: ${outcome.message}`);
+  }
   return outcome;
 }
 
@@ -81,7 +85,9 @@ live("live Internet Archive", () => {
     // and the one after it is empty. A count of occurrences would not behave
     // this way, and the tools describe it as documents on that basis.
     const first = await reachable(ctx, () => client().searchInside('"the pequods crew"', 5, 1));
-    if (first.data.total <= 5) return;
+    if (first.data.total <= 5) {
+      return;
+    }
 
     const second = await reachable(ctx, () => client().searchInside('"the pequods crew"', 5, 2));
     expect(second.data.total, "the count must not move between pages").toBe(first.data.total);

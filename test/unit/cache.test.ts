@@ -77,7 +77,9 @@ describe("Cache, expiry", () => {
 describe("Cache, bounds", () => {
   it("never grows past the number of entries it was given", () => {
     const cache = new Cache<number>(10_000, 3);
-    for (let i = 0; i < 20; i += 1) cache.set(`k${i}`, i);
+    for (let i = 0; i < 20; i += 1) {
+      cache.set(`k${i}`, i);
+    }
     expect(
       cache.size,
       "an unbounded cache in a long-running server is a leak, not a cache",

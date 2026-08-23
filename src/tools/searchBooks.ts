@@ -15,6 +15,145 @@ import { strictInput } from "./arguments.js";
 import { MOST_PAGES, agreeing, counted, ok, pastLastPage, toToolError } from "./shared.js";
 import type { ToolResult } from "./shared.js";
 
+/**
+ * Why a page of works came back empty.
+ *
+ * A page past the last one and a search matching nothing are different
+ * statements about the catalogue, and a caller acts on them differently.
+ */
+function nothingOnThisPage(
+  outOfRange: string | null,
+  total: number,
+  page: number,
+  asked: string,
+): string {
+  if (outOfRange) {
+    return `No work on page ${page} for ${asked}, of ${counted(total, "work")} matching.`;
+  }
+  return `No work found for ${asked}.`;
+}
+
+/**
+ * What the search found, and what a row does not prove.
+ *
+ * A work in this catalogue is not a scan: it can be catalogued with no copy
+ * held anywhere, and a work with several editions carries fewer identifiers
+ * than it has scans. Free text matches parts of words and reads titles and
+ * authors together, so the words given also reach authors whose name merely
+ * contains them.
+ */
+function notesOnWhatTheSearchFound(
+  total: number,
+  args: { query?: string | undefined; language?: string | undefined; sort: string },
+  books: ReadonlyArray<{
+    title: string;
+    scan_count: number;
+    archive_identifiers: readonly string[];
+    first_published_year: number | null;
+  }>,
+  outOfRange: string | null,
+  asked: string,
+): string[] {
+  const notes: string[] = [];
+
+  if (books.length === 0 && !outOfRange) {
+    notes.push(
+      `Nothing matched ${asked}. The criteria given hold at once, so a single value Open Library does not use empties the answer, which is a different thing from the catalogue holding nothing under the others.`,
+    );
+    if (args.language) {
+      notes.push(
+        "'language' is matched against Open Library's own three-letter codes, such as 'eng' or 'fre'. A code outside that set matches no work at all.",
+      );
+    }
+    if (args.query) {
+      notes.push(
+        `Free text here reads titles and authors, so a work Open Library catalogues under a wording other than the one given (${args.query}) is not ruled out by this answer.`,
+      );
+    }
+  }
+
+  if (total > books.length) {
+    notes.push(
+      `${counted(total, "work")} ${agreeing(total, "matches", "match")} and ${books.length} ${agreeing(books.length, "is", "are")} shown.`,
+    );
+  }
+  if (books.length > 0 && books.every((book) => book.scan_count === 0)) {
+    notes.push(
+      "None of these works has a scan on the Archive, so there is nothing here to read or to search inside.",
+    );
+  }
+
+  const trimmed = books.filter((book) => book.scan_count > book.archive_identifiers.length);
+  if (trimmed.length > 0) {
+    const richest = trimmed.reduce((most, book) =>
+      book.scan_count > most.scan_count ? book : most,
+    );
+    notes.push(
+      `Scans are listed ${MOST_SCANS} per work, and ${counted(trimmed.length, "work")} here ${agreeing(trimmed.length, "holds", "hold")} more, up to ${richest.scan_count} on "${richest.title}". Read 'scan_count' for what a work holds, and its page on Open Library for the identifiers not listed.`,
+    );
+  }
+
+  if (books.length > 0 && (args.sort === "oldest" || args.sort === "newest")) {
+    notes.push(
+      `Ordered on 'first_published_year', which Open Library takes from its edition records: a mistyped or loosely catalogued edition puts a work centuries from the date it appeared, and such a row leads this order. Check the year on each row against its source_url before calling it a first publication.`,
+    );
+    notes.push(...notesOnDatingAScan(books));
+  }
+  if (books.length > 0 && args.query) {
+    notes.push(
+      `Free text matches parts of words and reads titles and authors together, so the words given (${args.query}) also find works by authors whose name merely contains them. Read 'authors' on each row before treating a result as that author's work.`,
+    );
+  }
+
+  return notes;
+}
+
+/** One row of the answer: what the catalogue says of a work, and where to read it. */
+function renderBooks(
+  books: ReadonlyArray<{
+    title: string;
+    authors: readonly string[];
+    first_published_year: number | null;
+    edition_count: number | null;
+    page_count: number | null;
+    scan_count: number;
+    source_url: string;
+  }>,
+): string {
+  return books
+    .map((book, index) => {
+      const bits = [
+        `${index + 1}. ${book.title}`,
+        book.authors.length > 0 ? `· ${book.authors.join(", ")}` : "",
+        book.first_published_year === null ? "" : `(${book.first_published_year})`,
+        book.edition_count === null ? "" : `· ${book.edition_count} editions`,
+        book.page_count === null ? "" : `· ${book.page_count} p.`,
+        book.scan_count > 0 ? `· ${book.scan_count} scan(s)` : "· no scan",
+      ];
+      return `${bits.filter(Boolean).join(" ")}\n   ${book.source_url}`;
+    })
+    .join("\n");
+}
+
+/**
+ * What a scan beside a year is, and is not.
+ *
+ * The year and the identifiers on a row answer two different questions: when
+ * the work first appeared, and which printings of it the Archive has scanned.
+ * Ranked by date, a row invites a caller to open the scan as the thing of that
+ * year, and the scan can be a translation of any later one.
+ */
+function notesOnDatingAScan(
+  books: ReadonlyArray<{ first_published_year: number | null; scan_count: number }>,
+): string[] {
+  if (!books.some((book) => book.first_published_year !== null && book.scan_count > 0)) {
+    return [];
+  }
+  return [
+    "'archive_identifiers' name scans of particular editions, which can be reissues or translations from centuries after the year beside them. Read a scan's own record with get_item before dating what it holds.",
+  ];
+}
+
 export const searchBooksDescription = [
   "Find a book on Open Library, the Internet Archive's catalogue of works, either by name or by description.",
   "Pass 'query' when you know what you are looking for: a title, an author.",
@@ -189,7 +328,9 @@ export async function runSearchBooks(
     const { data, cached, skipped } = await client.searchBooks(criteria, args.limit, args.page);
 
     const notes: string[] = [];
-    if (cached) notes.push("Served from this server's short-lived in-memory cache.");
+    if (cached) {
+      notes.push("Served from this server's short-lived in-memory cache.");
+    }
     if (skipped) {
       notes.push(`${skipped} work(s) came back without a title or a key and were left out.`);
     }
@@ -210,88 +351,20 @@ export async function runSearchBooks(
     }));
 
     const outOfRange = pastLastPage(data.total, args.limit, args.page);
-    if (outOfRange) notes.push(outOfRange);
+    if (outOfRange) {
+      notes.push(outOfRange);
+    }
 
     // An answer holding no work is an answer about where this search looked.
     // Every criterion given has to hold at once, so one value the catalogue
     // does not use empties the result, and the emptiness on its own reads as a
     // statement about what Open Library holds.
-    if (books.length === 0 && !outOfRange) {
-      notes.push(
-        `Nothing matched ${asked}. The criteria given hold at once, so a single value Open Library does not use empties the answer, which is a different thing from the catalogue holding nothing under the others.`,
-      );
-      if (args.language) {
-        notes.push(
-          "'language' is matched against Open Library's own three-letter codes, such as 'eng' or 'fre'. A code outside that set matches no work at all.",
-        );
-      }
-      if (args.query) {
-        notes.push(
-          `Free text here reads titles and authors, so a work Open Library catalogues under a wording other than the one given (${args.query}) is not ruled out by this answer.`,
-        );
-      }
-    }
-
-    if (data.total > books.length) {
-      notes.push(
-        `${counted(data.total, "work")} ${agreeing(data.total, "matches", "match")} and ${books.length} ${agreeing(books.length, "is", "are")} shown.`,
-      );
-    }
-    if (books.length > 0 && books.every((book) => book.scan_count === 0)) {
-      notes.push(
-        "None of these works has a scan on the Archive, so there is nothing here to read or to search inside.",
-      );
-    }
-
-    const trimmed = books.filter((book) => book.scan_count > book.archive_identifiers.length);
-    if (trimmed.length > 0) {
-      const richest = trimmed.reduce((most, book) =>
-        book.scan_count > most.scan_count ? book : most,
-      );
-      notes.push(
-        `Scans are listed ${MOST_SCANS} per work, and ${counted(trimmed.length, "work")} here ${agreeing(trimmed.length, "holds", "hold")} more, up to ${richest.scan_count} on "${richest.title}". Read 'scan_count' for what a work holds, and its page on Open Library for the identifiers not listed.`,
-      );
-    }
-
-    if (books.length > 0 && (args.sort === "oldest" || args.sort === "newest")) {
-      notes.push(
-        `Ordered on 'first_published_year', which Open Library takes from its edition records: a mistyped or loosely catalogued edition puts a work centuries from the date it appeared, and such a row leads this order. Check the year on each row against its source_url before calling it a first publication.`,
-      );
-      // The year and the identifiers on a row answer two different questions:
-      // when the work first appeared, and which printings of it the Archive has
-      // scanned. Ranked by date, a row invites a caller to open the scan as the
-      // thing of that year, and the scan can be a translation of any later one.
-      if (books.some((book) => book.first_published_year !== null && book.scan_count > 0)) {
-        notes.push(
-          "'archive_identifiers' name scans of particular editions, which can be reissues or translations from centuries after the year beside them. Read a scan's own record with get_item before dating what it holds.",
-        );
-      }
-    }
-    if (books.length > 0 && args.query) {
-      notes.push(
-        `Free text matches parts of words and reads titles and authors together, so the words given (${args.query}) also find works by authors whose name merely contains them. Read 'authors' on each row before treating a result as that author's work.`,
-      );
-    }
+    notes.push(...notesOnWhatTheSearchFound(data.total, args, books, outOfRange, asked));
 
     const body =
       books.length === 0
-        ? outOfRange
-          ? `No work on page ${args.page} for ${asked}, of ${counted(data.total, "work")} matching.`
-          : `No work found for ${asked}.`
-        : `${books.length} of ${counted(data.total, "work")} for ${asked}:\n` +
-          books
-            .map((book, index) => {
-              const bits = [
-                `${index + 1}. ${book.title}`,
-                book.authors.length > 0 ? `· ${book.authors.join(", ")}` : "",
-                book.first_published_year === null ? "" : `(${book.first_published_year})`,
-                book.edition_count === null ? "" : `· ${book.edition_count} editions`,
-                book.page_count === null ? "" : `· ${book.page_count} p.`,
-                book.scan_count > 0 ? `· ${book.scan_count} scan(s)` : "· no scan",
-              ];
-              return `${bits.filter(Boolean).join(" ")}\n   ${book.source_url}`;
-            })
-            .join("\n");
+        ? nothingOnThisPage(outOfRange, data.total, args.page, asked)
+        : `${books.length} of ${counted(data.total, "work")} for ${asked}:\n${renderBooks(books)}`;
 
     return ok(
       {
@@ -328,18 +401,32 @@ export async function runSearchBooks(
  */
 function describeCriteria(args: SearchBooksArgs): string {
   const parts: string[] = [];
-  if (args.query) parts.push(`the words ${args.query}`);
-  if (args.subject) parts.push(`subject ${args.subject}`);
-  if (args.place) parts.push(`set in ${args.place}`);
-  if (args.time) parts.push(`about the period ${args.time}`);
-  if (args.person) parts.push(`about ${args.person}`);
-  if (args.language) parts.push(`in ${args.language}`);
+  if (args.query) {
+    parts.push(`the words ${args.query}`);
+  }
+  if (args.subject) {
+    parts.push(`subject ${args.subject}`);
+  }
+  if (args.place) {
+    parts.push(`set in ${args.place}`);
+  }
+  if (args.time) {
+    parts.push(`about the period ${args.time}`);
+  }
+  if (args.person) {
+    parts.push(`about ${args.person}`);
+  }
+  if (args.language) {
+    parts.push(`in ${args.language}`);
+  }
   if (args.year_from !== undefined || args.year_to !== undefined) {
     parts.push(`published ${args.year_from ?? "any time"} to ${args.year_to ?? "now"}`);
   }
   if (args.pages_min !== undefined || args.pages_max !== undefined) {
     parts.push(`${args.pages_min ?? 1} to ${args.pages_max ?? "any"} pages`);
   }
-  if (args.sort !== "relevance") parts.push(`by ${args.sort}`);
+  if (args.sort !== "relevance") {
+    parts.push(`by ${args.sort}`);
+  }
   return parts.join(", ");
 }

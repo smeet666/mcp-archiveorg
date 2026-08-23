@@ -89,7 +89,7 @@ describe("toBooks, the empty result", () => {
 });
 
 describe("toBooks, the shape that cannot be recognised", () => {
-  const unrecognisable: Array<[string, unknown]> = [
+  const unrecognisable: [string, unknown][] = [
     ["null", null],
     ["a bare string", "service unavailable"],
     ["an answer with no docs", { numFound: 5 }],

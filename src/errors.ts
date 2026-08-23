@@ -55,7 +55,7 @@ export const rateLimited = (message: string, details?: ErrorDetails) =>
 
 export const parseFailure = (message: string, details?: ErrorDetails) =>
   new ArchiveError("parse_failure", message, {
-    hint: `The Archive may have changed how it answers. Please report this at ${"https://github.com/smeet666/mcp-archiveorg/issues"} with the arguments you used.`,
+    hint: "The Archive may have changed how it answers. Please report this at https://github.com/smeet666/mcp-archiveorg/issues with the arguments you used.",
     ...details,
   });
 

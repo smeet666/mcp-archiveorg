@@ -175,7 +175,7 @@ describe("toItemDetail, the identifier that does not exist", () => {
 });
 
 describe("toItemDetail, the shape that cannot be recognised", () => {
-  const unrecognisable: Array<[string, unknown]> = [
+  const unrecognisable: [string, unknown][] = [
     ["null", null],
     ["a bare string", "not json at all"],
     ["a list where a document was due", [1, 2, 3]],
