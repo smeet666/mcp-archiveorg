@@ -456,6 +456,29 @@ export function toNearestSnapshot(
 }
 
 /**
+ * The captures, with the key to ask for more taken off the end.
+ *
+ * The key arrives as a final one-cell row, separated from the captures by a
+ * blank one. Neither is a capture, and neither is an unreadable row: counted as
+ * either, they would show up as two captures the index never made.
+ */
+function takeResumeKey(rows: unknown[]): { dataRows: unknown[]; resumeKey: string | null } {
+  const tail = rows.at(-1);
+  const separator = rows.at(-2);
+
+  const carriesKey =
+    Array.isArray(tail) && tail.length === 1 && Array.isArray(separator) && separator.length === 0;
+  if (!carriesKey) {
+    return { dataRows: rows, resumeKey: null };
+  }
+
+  return {
+    dataRows: rows.slice(0, -2),
+    resumeKey: typeof tail[0] === "string" ? tail[0] : null,
+  };
+}
+
+/**
  * The capture index answers as rows of an array, the first being the column
  * names. Reading positions by name rather than by index keeps a reordering
  * upstream from silently swapping dates and statuses.
@@ -495,21 +518,7 @@ export function toSnapshotHistory(
     return typeof value === "string" ? value : null;
   };
 
-  // The key arrives as a final one-cell row, separated from the captures by a
-  // blank one. Neither is a capture, and neither is an unreadable row.
-  let dataRows = payload.slice(1);
-  let resumeKey: string | null = null;
-  const tail = dataRows.at(-1);
-  const separator = dataRows.at(-2);
-  if (
-    Array.isArray(tail) &&
-    tail.length === 1 &&
-    Array.isArray(separator) &&
-    separator.length === 0
-  ) {
-    resumeKey = typeof tail[0] === "string" ? tail[0] : null;
-    dataRows = dataRows.slice(0, -2);
-  }
+  const { dataRows, resumeKey } = takeResumeKey(payload.slice(1));
 
   const snapshots: Snapshot[] = [];
   let skipped = 0;

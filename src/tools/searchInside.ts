@@ -12,6 +12,19 @@ import { strictInput } from "./arguments.js";
 import { MOST_PAGES, OCR_CAVEAT, agreeing, counted, ok, toToolError, truncate } from "./shared.js";
 import type { ToolResult } from "./shared.js";
 
+/**
+ * Why a page of matches came back empty.
+ *
+ * A page past the last one and a corpus holding the words nowhere are different
+ * statements about what has been scanned.
+ */
+function nothingOnThisPage(total: number, page: number, query: string): string {
+  if (total > 0) {
+    return `Page ${page} is past the last of ${counted(total, "document")} containing ${query}.`;
+  }
+  return `Nothing found inside the scans for ${query}.`;
+}
+
 export const searchInsideDescription = [
   "Search the text inside digitised books, newspapers and documents on the Internet Archive.",
   "This reads what optical recognition took off the scanned pages, so it finds a phrase that appears nowhere in a title or a catalogue record.",
@@ -166,9 +179,7 @@ export async function runSearchInside(
 
     const body =
       hits.length === 0
-        ? data.total > 0
-          ? `Page ${args.page} is past the last of ${counted(data.total, "document")} containing ${args.query}.`
-          : `Nothing found inside the scans for ${args.query}.`
+        ? nothingOnThisPage(data.total, args.page, args.query)
         : `${hits.length} of ${counted(data.total, "document")} containing ${args.query}:\n` +
           hits
             .map((hit, index) => {

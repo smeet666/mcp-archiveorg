@@ -14,6 +14,57 @@ import { strictInput } from "./arguments.js";
 import { itemSummarySchema, ok, toToolError, truncate } from "./shared.js";
 import type { ToolResult } from "./shared.js";
 
+/**
+ * Put the files a caller asked for into the payload, and say what was left out.
+ *
+ * A format that matches nothing is different from an item holding no files: the
+ * formats the item does carry are named, so a caller can ask again for one of
+ * them rather than concluding the item is empty.
+ */
+function attachFiles(
+  structured: Record<string, unknown>,
+  data: {
+    files: ReadonlyArray<{
+      name: string;
+      format: string | null;
+      size: number | null;
+      downloadUrl: string;
+    }>;
+  },
+  args: { file_format?: string | undefined; max_files: number },
+  wanted: Set<string>,
+  notes: string[],
+): void {
+  if (!wanted.has("files")) {
+    return;
+  }
+
+  const wantedFormat = args.file_format?.toLowerCase();
+  const matching =
+    wantedFormat === undefined
+      ? data.files
+      : data.files.filter((file) => (file.format ?? "").toLowerCase() === wantedFormat);
+  const shown = matching.slice(0, args.max_files);
+
+  structured.files = shown.map((file) => ({
+    name: file.name,
+    format: file.format,
+    size_bytes: file.size,
+    download_url: file.downloadUrl,
+  }));
+
+  if (args.file_format && matching.length === 0) {
+    const formats = [...new Set(data.files.map((f) => f.format).filter(Boolean))];
+    notes.push(
+      `No file of format "${args.file_format}". The item holds ${formats.join(", ") || "no format the Archive named"}.`,
+    );
+    return;
+  }
+  if (matching.length > shown.length) {
+    notes.push(`${matching.length} files match and the first ${shown.length} are shown.`);
+  }
+}
+
 const SECTIONS = ["basic", "files", "full_metadata"] as const;
 
 export const getItemDescription = [
@@ -156,29 +207,7 @@ export async function runGetItem(client: ArchiveClient, args: GetItemArgs): Prom
       );
     }
 
-    if (wanted.has("files")) {
-      const wantedFormat = args.file_format?.toLowerCase();
-      const matching =
-        wantedFormat === undefined
-          ? data.files
-          : data.files.filter((file) => (file.format ?? "").toLowerCase() === wantedFormat);
-      const shown = matching.slice(0, args.max_files);
-      structured.files = shown.map((file) => ({
-        name: file.name,
-        format: file.format,
-        size_bytes: file.size,
-        download_url: file.downloadUrl,
-      }));
-
-      if (args.file_format && matching.length === 0) {
-        const formats = [...new Set(data.files.map((f) => f.format).filter(Boolean))];
-        notes.push(
-          `No file of format "${args.file_format}". The item holds ${formats.join(", ") || "no format the Archive named"}.`,
-        );
-      } else if (matching.length > shown.length) {
-        notes.push(`${matching.length} files match and the first ${shown.length} are shown.`);
-      }
-    }
+    attachFiles(structured, data, args, wanted, notes);
 
     if (wanted.has("full_metadata")) {
       structured.full_metadata = data.raw ?? {};

@@ -182,6 +182,155 @@ export function statedReason(body: string): string | null {
   return typeof single === "string" && single.trim() !== "" ? single : null;
 }
 
+/**
+ * What a thrown attempt amounts to, or the error it has become.
+ *
+ * An error this module raised on purpose already says what happened. Silence is
+ * given fewer attempts than a refusal: the capture index in particular can take
+ * tens of seconds, and asking again costs both sides the same wait.
+ */
+function readFailure(
+  error: unknown,
+  attempts: { url: string; attempt: number; maxRetries: number; timeoutMs: number },
+): Error {
+  const { url, attempt, maxRetries, timeoutMs } = attempts;
+
+  if (error instanceof Error && error.name === "ArchiveError") {
+    throw error;
+  }
+
+  if (error instanceof Error && error.name === "AbortError") {
+    if (attempt >= Math.min(maxRetries, RETRIES_AFTER_SILENCE)) {
+      throw timeoutError(
+        `No answer from the Internet Archive within ${timeoutMs}ms. The capture index in particular can take tens of seconds.`,
+        { url },
+      );
+    }
+    return error;
+  }
+
+  const failure = error instanceof Error ? error : new Error(String(error));
+  if (attempt >= maxRetries) {
+    throw networkError(`Could not reach the Internet Archive: ${failure.message}`, { url });
+  }
+  return failure;
+}
+
+/** What a refusal from the Archive amounts to, and what it costs the pacing. */
+type Refusal =
+  | { kind: "refused"; error: Error; pushBack: boolean }
+  | { kind: "again"; waitMs: number; pushBack: boolean };
+
+/**
+ * Read a status the Archive answered with, apart from the loop that retries.
+ *
+ * An abandoned body keeps its socket out of the pool until it is consumed or
+ * cancelled, so a body this never reads is cancelled here.
+ *
+ * The 400 is the interesting one: the site uses it for three different things —
+ * a request it objects to, which states what was wrong with it; a failure in
+ * its own services, which states a reason marked as an error of its own; and a
+ * refusal it gives no reason for at all. Only the first is the caller's to fix,
+ * and reading either of the others that way sends them to correct a request
+ * nothing objected to.
+ */
+async function readRefusal(
+  response: Response,
+  url: string,
+  attempt: number,
+  maxRetries: number,
+): Promise<Refusal> {
+  if (PUSH_BACK.has(response.status)) {
+    await response.body?.cancel().catch(() => undefined);
+    const asked = parseRetryAfter(response.headers.get("retry-after"));
+
+    if (asked !== null && asked > LONGEST_WAIT_MS) {
+      return {
+        kind: "refused",
+        pushBack: true,
+        error: rateLimited(
+          `The Internet Archive asked this client to wait ${Math.round(asked / 1000)} seconds (HTTP ${response.status}).`,
+          { url, status: response.status },
+        ),
+      };
+    }
+    if (attempt >= maxRetries) {
+      return {
+        kind: "refused",
+        pushBack: true,
+        error: rateLimited(
+          `The Internet Archive asked this client to slow down (HTTP ${response.status}).`,
+          { url, status: response.status },
+        ),
+      };
+    }
+    return { kind: "again", pushBack: true, waitMs: asked ?? backoffMs(attempt) };
+  }
+
+  if (RETRYABLE.has(response.status) && attempt < maxRetries) {
+    await response.body?.cancel().catch(() => undefined);
+    return { kind: "again", pushBack: false, waitMs: backoffMs(attempt) };
+  }
+
+  if (response.status === 400 || response.status === 422) {
+    return await readObjection(response, url, attempt, maxRetries);
+  }
+
+  if (response.status === 404 || response.status === 410) {
+    return {
+      kind: "refused",
+      pushBack: false,
+      error: notFound("The Internet Archive holds nothing at this address.", {
+        url,
+        status: response.status,
+      }),
+    };
+  }
+
+  return {
+    kind: "refused",
+    pushBack: false,
+    error: networkError(`The Internet Archive answered HTTP ${response.status}.`, {
+      url,
+      status: response.status,
+    }),
+  };
+}
+
+/** Which of the three things a 400 from the Archive is this time. */
+async function readObjection(
+  response: Response,
+  url: string,
+  attempt: number,
+  maxRetries: number,
+): Promise<Refusal> {
+  const stated = statedReason(await response.text().catch(() => ""));
+
+  if (stated !== null && !namesItsOwnFailure(stated)) {
+    const refusal = describeRefusal(url);
+    return {
+      kind: "refused",
+      pushBack: false,
+      error: invalidInput(`${refusal.message} It said: ${stated}`, refusal.hint),
+    };
+  }
+
+  if (attempt < maxRetries) {
+    return { kind: "again", pushBack: false, waitMs: backoffMs(attempt) };
+  }
+
+  return {
+    kind: "refused",
+    pushBack: false,
+    error: networkError(
+      stated === null
+        ? `The Internet Archive refused this request without stating a reason (HTTP ${response.status}).`
+        : `A service behind the Internet Archive did not answer. It said: ${stated}`,
+      { url, status: response.status },
+    ),
+  };
+}
+
 /** Growing wait with jitter, so several clients do not return in step. */
 function backoffMs(attempt: number): number {
   const base = Math.min(8000, 400 * 2 ** attempt);
@@ -220,101 +369,19 @@ export async function fetchText(options: FetchOptions): Promise<string> {
         return await response.text();
       }
 
-      if (PUSH_BACK.has(response.status)) {
+      const verdict = await readRefusal(response, url, attempt, maxRetries);
+      if (verdict.pushBack) {
         limiter.pushBack();
-        await response.body?.cancel().catch(() => undefined);
-        const asked = parseRetryAfter(response.headers.get("retry-after"));
-
-        if (asked !== null && asked > LONGEST_WAIT_MS) {
-          throw rateLimited(
-            `The Internet Archive asked this client to wait ${Math.round(asked / 1000)} seconds (HTTP ${response.status}).`,
-            { url, status: response.status },
-          );
-        }
-        if (attempt >= maxRetries) {
-          throw rateLimited(
-            `The Internet Archive asked this client to slow down (HTTP ${response.status}).`,
-            { url, status: response.status },
-          );
-        }
-        askedWaitMs = asked ?? backoffMs(attempt);
-        lastError = new Error(`HTTP ${response.status}`);
-        continue;
       }
-
-      if (RETRYABLE.has(response.status) && attempt < maxRetries) {
-        // An abandoned body keeps its socket out of the pool until it is
-        // consumed or cancelled.
-        await response.body?.cancel().catch(() => undefined);
-        lastError = new Error(`HTTP ${response.status}`);
-        askedWaitMs = backoffMs(attempt);
-        continue;
+      if (verdict.kind === "refused") {
+        throw verdict.error;
       }
-
-      // The site read the request and would not run it. It uses this status for
-      // three different things: a request it objects to, which states what was
-      // wrong with it; a failure in its own services, which states a reason
-      // marked as an error of its own; and a refusal it gives no reason for at
-      // all. Only the first is the caller's to fix, and reading either of the
-      // others that way sends them to correct a request nothing objected to.
-      if (response.status === 400 || response.status === 422) {
-        const stated = statedReason(await response.text().catch(() => ""));
-
-        if (stated !== null && !namesItsOwnFailure(stated)) {
-          const refusal = describeRefusal(url);
-          throw invalidInput(`${refusal.message} It said: ${stated}`, refusal.hint);
-        }
-
-        if (attempt < maxRetries) {
-          lastError = new Error(`HTTP ${response.status}`);
-          askedWaitMs = backoffMs(attempt);
-          continue;
-        }
-        throw networkError(
-          stated === null
-            ? `The Internet Archive refused this request without stating a reason (HTTP ${response.status}).`
-            : `A service behind the Internet Archive did not answer. It said: ${stated}`,
-          { url, status: response.status },
-        );
-      }
-
-      // The site answered, and answered that it holds nothing at this address.
-      // Calling that a network failure invites a retry of a settled question.
-      if (response.status === 404 || response.status === 410) {
-        throw notFound("The Internet Archive holds nothing at this address.", {
-          url,
-          status: response.status,
-        });
-      }
-
-      throw networkError(`The Internet Archive answered HTTP ${response.status}.`, {
-        url,
-        status: response.status,
-      });
+      askedWaitMs = verdict.waitMs;
+      lastError = new Error(`HTTP ${response.status}`);
     } catch (error) {
       clearTimeout(deadline);
 
-      // An error this module raised on purpose already says what happened.
-      if (error instanceof Error && error.name === "ArchiveError") {
-        throw error;
-      }
-
-      if (error instanceof Error && error.name === "AbortError") {
-        lastError = error;
-        if (attempt >= Math.min(maxRetries, RETRIES_AFTER_SILENCE)) {
-          throw timeoutError(
-            `No answer from the Internet Archive within ${timeoutMs}ms. The capture index in particular can take tens of seconds.`,
-            { url },
-          );
-        }
-        askedWaitMs = backoffMs(attempt);
-        continue;
-      }
-
-      lastError = error instanceof Error ? error : new Error(String(error));
-      if (attempt >= maxRetries) {
-        throw networkError(`Could not reach the Internet Archive: ${lastError.message}`, { url });
-      }
+      lastError = readFailure(error, { url, attempt, maxRetries, timeoutMs });
       askedWaitMs = backoffMs(attempt);
     } finally {
       clearTimeout(deadline);
