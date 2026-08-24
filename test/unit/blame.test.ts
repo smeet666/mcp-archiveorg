@@ -241,8 +241,8 @@ describe("an identifier read loosely", () => {
     let thrown: unknown;
     try {
       toItemDetail({ metadata: {} }, "NASA", "https://archive.org/metadata/NASA");
-    } catch (error) {
-      thrown = error;
+    } catch (raised) {
+      thrown = raised;
     }
 
     const error = thrown as ArchiveError;
