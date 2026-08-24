@@ -111,7 +111,7 @@ describe("a work read back from the index", () => {
   };
 
   it("carries the page count", () => {
-    const { books } = toBooks(payload, "https://example.test", () => {});
+    const { books } = toBooks(payload, "https://example.test", () => undefined);
 
     expect(books[0]!.pageCount).toBe(224);
   });
@@ -121,7 +121,7 @@ describe("a work read back from the index", () => {
       numFound: 1,
       docs: [{ ...payload.docs[0], subject: Array.from({ length: 200 }, (_, i) => `tag ${i}`) }],
     };
-    const { books } = toBooks(many, "https://example.test", () => {});
+    const { books } = toBooks(many, "https://example.test", () => undefined);
 
     expect(books[0]!.subjects.length).toBeGreaterThan(0);
     expect(books[0]!.subjects.length).toBeLessThanOrEqual(12);
@@ -129,7 +129,7 @@ describe("a work read back from the index", () => {
 
   it("reports no page count rather than zero when the index holds none", () => {
     const without = { numFound: 1, docs: [{ key: "/works/OL1W", title: "Untitled" }] };
-    const { books } = toBooks(without, "https://example.test", () => {});
+    const { books } = toBooks(without, "https://example.test", () => undefined);
 
     expect(books[0]!.pageCount).toBeNull();
     expect(books[0]!.subjects).toEqual([]);

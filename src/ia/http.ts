@@ -348,7 +348,10 @@ export async function fetchText(options: FetchOptions): Promise<string> {
   for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
     if (askedWaitMs > 0) {
       logger.debug(`waiting ${askedWaitMs}ms, as asked`);
-      await new Promise((resolve) => setTimeout(resolve, askedWaitMs));
+      // Read once into a constant: the timer closes over what this attempt was
+      // told to wait, not over whatever a later attempt puts there.
+      const asked = askedWaitMs;
+      await new Promise((resolve) => setTimeout(resolve, asked));
       askedWaitMs = 0;
     }
     await limiter.beforeRequest();
@@ -399,9 +402,10 @@ export async function fetchJson<T = unknown>(options: FetchOptions): Promise<T> 
   const body = await fetchText(options);
   try {
     return JSON.parse(body) as T;
-  } catch {
+  } catch (cause) {
     throw parseFailure("The Internet Archive answered with something that is not JSON.", {
       url: options.url,
+      cause,
     });
   }
 }

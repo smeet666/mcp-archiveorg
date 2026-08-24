@@ -559,7 +559,9 @@ export function toSnapshotHistory(
     throw parseFailure("The capture index answered with rows this server could not read.", { url });
   }
 
-  const dates = snapshots.map((s) => s.capturedAt).sort();
+  // The captures are timestamps written to a fixed width, so comparing them as
+  // text orders them chronologically.
+  const dates = snapshots.map((one) => one.capturedAt).sort((a, b) => a.localeCompare(b));
   return {
     url: target,
     total: snapshots.length,

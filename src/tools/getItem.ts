@@ -54,7 +54,9 @@ function attachFiles(
   }));
 
   if (args.file_format && matching.length === 0) {
-    const formats = [...new Set(data.files.map((f) => f.format).filter(Boolean))];
+    const formats: string[] = [
+      ...new Set(data.files.map((one) => one.format).filter((one): one is string => Boolean(one))),
+    ];
     notes.push(
       `No file of format "${args.file_format}". The item holds ${formats.join(", ") || "no format the Archive named"}.`,
     );

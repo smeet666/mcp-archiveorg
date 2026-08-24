@@ -39,10 +39,10 @@ export interface Config {
 export const DEFAULT_USER_AGENT = `mcp-archiveorg/${PKG_VERSION} (+${REPO_URL})`;
 
 export interface Logger {
-  debug(message: string): void;
-  info(message: string): void;
-  warn(message: string): void;
-  error(message: string): void;
+  debug: (message: string) => void;
+  info: (message: string) => void;
+  warn: (message: string) => void;
+  error: (message: string) => void;
 }
 
 export function createLogger(level: LogLevel): Logger {
