@@ -4,10 +4,15 @@
     {
       "key": "/works/OL1W",
       "title": "The Salt Almanac",
-      "author_name": ["Ines Marchetti"],
+      "author_name": [
+        "Ines Marchetti"
+      ],
       "first_publish_year": 1893,
       "edition_count": 44,
-      "ia": ["the-salt-almanac-1893", "saltalmanac0000marc"]
+      "ia": [
+        "the-salt-almanac-1893",
+        "saltalmanac0000marc"
+      ]
     },
     {
       "key": "/works/OL2W",
@@ -17,7 +22,9 @@
       "edition_count": 3
     },
     {
-      "author_name": ["Anonymous"]
+      "author_name": [
+        "Anonymous"
+      ]
     }
   ]
 }
