@@ -97,7 +97,7 @@ export const getItemInput = strictInput({
       "Keep only files of this format, such as 'PDF' or 'MP3'. Matched case-insensitively.",
     ),
   max_files: z.number().int().min(1).max(200).default(25).describe("Ceiling on files returned."),
-  max_description_chars: z.number().int().min(100).max(20000).default(2000),
+  max_description_chars: z.number().int().min(100).max(20_000).default(2000),
 });
 
 export const getItemOutput = z.object({

@@ -78,14 +78,14 @@ describe("toItemDetail, the file listing", () => {
     const item = parse("item");
     // The fixture's item_size deliberately differs from the sum of the file
     // sizes, so a parser that adds them up cannot pass by coincidence.
-    expect(item.totalBytes, "total_bytes is the Archive's own item_size").toBe(5012340);
+    expect(item.totalBytes, "total_bytes is the Archive's own item_size").toBe(5_012_340);
   });
 
   it("turns file sizes sent as strings into numbers and builds a download address", () => {
     const item = parse("item");
     const pdf = item.files.find((file) => file.name.endsWith(".pdf"))!;
     expect(pdf.format).toBe("PDF");
-    expect(pdf.size, "a size quoted as a string must still be a number").toBe(4821004);
+    expect(pdf.size, "a size quoted as a string must still be a number").toBe(4_821_004);
     expect(pdf.downloadUrl, "every file must carry the address it can be fetched from").toBe(
       downloadUrl(ID, "the-glass-orchard.pdf"),
     );

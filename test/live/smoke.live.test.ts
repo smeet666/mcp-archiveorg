@@ -10,6 +10,7 @@
  * Skipped unless IA_LIVE is set, so a normal test run touches no network.
  */
 
+import process from "node:process";
 import { describe, expect, it, type TestContext } from "vitest";
 import { ArchiveClient } from "../../src/ia/client.js";
 import { ArchiveError } from "../../src/errors.js";

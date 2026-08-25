@@ -118,7 +118,7 @@ write(
 );
 
 write("item.json", {
-  created: 1700000000,
+  created: 1_700_000_000,
   files: [
     { name: "the-glass-orchard.pdf", format: "PDF", size: "4821004" },
     { name: "the-glass-orchard_djvu.txt", format: "DjVuTXT", size: "182004" },
@@ -126,7 +126,7 @@ write("item.json", {
     // A file with no name cannot be linked to, so it is left out.
     { format: "Metadata", size: "12" },
   ],
-  item_size: 5012340,
+  item_size: 5_012_340,
   metadata: {
     identifier: "the-glass-orchard-1971",
     title: "The Glass Orchard",
