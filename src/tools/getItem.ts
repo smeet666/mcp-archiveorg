@@ -14,6 +14,10 @@ import { strictInput } from "./arguments.js";
 import { itemSummarySchema, ok, toToolError, truncate } from "./shared.js";
 import type { ToolResult } from "./shared.js";
 
+const SCHEME = /^[a-z][a-z0-9+.-]*:\/\//i;
+const QUERY_OR_SPACE = /[?#\s]/;
+const QUERY_START = /[?#]/;
+
 /**
  * Put the files a caller asked for into the payload, and say what was left out.
  *
@@ -147,10 +151,10 @@ function readIdentifier(value: string): { identifier: string; spaceRemoved: bool
     );
   }
 
-  const address = /^[a-z][a-z0-9+.-]*:\/\//i.test(identifier) || identifier.includes("/");
-  if (address || /[?#\s]/.test(identifier)) {
+  const address = SCHEME.test(identifier) || identifier.includes("/");
+  if (address || QUERY_OR_SPACE.test(identifier)) {
     const last =
-      (identifier.split(/[?#]/)[0] ?? "")
+      (identifier.split(QUERY_START)[0] ?? "")
         .split("/")
         .filter((part) => part !== "")
         .pop() ?? "";

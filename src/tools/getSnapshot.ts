@@ -16,6 +16,9 @@ import { strictInput } from "./arguments.js";
 import { ok, readAddress, sameAddress, snapshotSchema, toToolError } from "./shared.js";
 import type { ToolResult } from "./shared.js";
 
+const ISO_DAY_OPENING = /^(\d{4})-(\d{2})-(\d{2})/;
+const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
+
 export const getSnapshotDescription = [
   "Find the Wayback Machine capture of a web page closest to a given date.",
   "Give 'at' to ask for a moment in time; leave it out for the most recent capture.",
@@ -61,7 +64,7 @@ function readDate(value: string): Date {
   // and the answer then reports a capture as some number of days from a date
   // nobody can point at. The calendar fields are checked on their own, so the
   // check holds whatever time zone offset follows them.
-  const named = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
+  const named = ISO_DAY_OPENING.exec(value);
   if (named) {
     const [year, month, day] = [Number(named[1]), Number(named[2]), Number(named[3])];
     const probe = new Date(Date.UTC(year, month - 1, day));
@@ -77,7 +80,7 @@ function readDate(value: string): Date {
     }
   }
 
-  const parsed = new Date(/^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T00:00:00Z` : value);
+  const parsed = new Date(ISO_DAY.test(value) ? `${value}T00:00:00Z` : value);
   if (Number.isNaN(parsed.getTime())) {
     throw invalidInput(
       `"${value}" is not a date this server can read.`,

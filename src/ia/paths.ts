@@ -6,6 +6,9 @@
  * change rather than a hunt through the parsers.
  */
 
+/** What a Wayback address carries after its timestamp: the address that was captured. */
+const WAYBACK_PATH = /\/web\/\d{4,14}[a-z_]*\/(.+)$/;
+
 export const HOST = {
   archive: "https://archive.org",
   wayback: "https://web.archive.org",
@@ -144,7 +147,7 @@ export const snapshotUrl = (timestamp: string, url: string) =>
  * shape, which leaves the caller to say what it knows instead of guessing.
  */
 export const capturedAddress = (waybackUrl: string): string | null => {
-  const match = /\/web\/\d{4,14}[a-z_]*\/(.+)$/.exec(waybackUrl);
+  const match = WAYBACK_PATH.exec(waybackUrl);
   return match?.[1] ?? null;
 };
 
