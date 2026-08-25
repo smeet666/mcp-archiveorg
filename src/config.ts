@@ -7,6 +7,7 @@
  * corrupts the session.
  */
 
+import process from "node:process";
 import { PKG_VERSION, REPO_URL } from "./version.js";
 
 export const LOG_LEVELS = ["silent", "error", "info", "debug"] as const;
@@ -76,7 +77,7 @@ function readInteger(
   }
 
   const value = Number(raw);
-  if (!Number.isFinite(value) || !Number.isInteger(value)) {
+  if (!(Number.isFinite(value) && Number.isInteger(value))) {
     process.stderr.write(
       `[mcp-archiveorg] error: ${name}="${raw}" is not a whole number; using ${fallback}.\n`,
     );

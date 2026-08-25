@@ -144,7 +144,7 @@ describe("a collection asked for as an item", () => {
   const collection = {
     is_collection: true,
     files_count: 9,
-    item_size: 134265,
+    item_size: 134_265,
     files: [{ name: "a.txt", format: "Text", size: "10" }],
     metadata: { identifier: "nasa", title: "NASA", mediatype: "collection" },
   };

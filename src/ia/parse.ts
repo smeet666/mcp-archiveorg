@@ -279,7 +279,7 @@ export function toInsideResults(
   for (const row of rows) {
     const fields = asObject(row.fields);
     const identifier = fields ? asString(fields[HIT_FIELD.identifier]) : null;
-    if (!fields || !identifier) {
+    if (!(fields && identifier)) {
       skipped += 1;
       continue;
     }
@@ -435,7 +435,7 @@ export function toNearestSnapshot(
 
   const stamp = asString(closest.timestamp);
   const capturedAt = stamp ? fromArchiveStamp(stamp) : null;
-  if (!stamp || !capturedAt) {
+  if (!(stamp && capturedAt)) {
     throw parseFailure("A capture came back without a readable date.", { url });
   }
 
@@ -529,7 +529,7 @@ export function toSnapshotHistory(
     }
     const stamp = at(row, "timestamp");
     const when = stamp ? fromArchiveStamp(stamp) : null;
-    if (!stamp || !when) {
+    if (!(stamp && when)) {
       skipped += 1;
       continue;
     }
@@ -581,7 +581,7 @@ export function toBooks(
   onSkip: (n: number) => void,
 ): { total: number; books: Book[] } {
   const root = asObject(payload);
-  if (!root || !Array.isArray(root.docs)) {
+  if (!(root && Array.isArray(root.docs))) {
     throw parseFailure("The book search did not answer with a list of works.", { url });
   }
 
@@ -591,7 +591,7 @@ export function toBooks(
     const doc = asObject(entry);
     const key = doc ? asString(doc[BOOK_FIELD.key]) : null;
     const title = doc ? proseText(doc[BOOK_FIELD.title]) : null;
-    if (!doc || !key || !title) {
+    if (!(doc && key && title)) {
       skipped += 1;
       continue;
     }

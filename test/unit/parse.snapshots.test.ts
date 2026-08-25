@@ -85,7 +85,7 @@ describe("toNearestSnapshot, the distance from the date asked for", () => {
   });
 
   it("reports whole days for a gap of part of a day", () => {
-    const asked = new Date(CAPTURE_MS + 5 * DAY_MS + 3 * 3600_000);
+    const asked = new Date(CAPTURE_MS + 5 * DAY_MS + 3 * 3_600_000);
     expect(
       nearest("snapshot", asked).daysFromRequested,
       "five days and three hours is five whole days",
