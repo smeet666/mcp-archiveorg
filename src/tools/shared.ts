@@ -3,6 +3,19 @@
 import { z } from "zod";
 import { ArchiveError, invalidInput } from "../errors.js";
 
+/** A character no address can hold, such as a line break or a tab. */
+const CONTROL_CHARACTER = /[\u0000-\u001f\u007f]/;
+const SCHEME = /^[a-z][a-z0-9+.-]*:\/\//i;
+const HOST_END = /[/?#]/;
+const USER_INFO = /^[^@]*@/;
+const PORT = /:\d+$/;
+const NUMERIC_HOST = /^\[[0-9a-f:]+\]$/i;
+const DOTTED_NAME = /^[^\s.]+(?:\.[^\s.]+)+$/;
+/** The port a scheme implies, which names the same address as no port at all. */
+const DEFAULT_PORT = /^((?:[a-z][a-z0-9+.-]*:\/\/)?[^/]*?):(?:80|443)(?=$|\/)/;
+const TRAILING_SLASHES = /\/+$/;
+const LOWERCASE_SCHEME = /^[a-z][a-z0-9+.-]*:\/\//;
+
 /**
  * The text block is what many clients render, and some render nothing else, so
  * it has to answer on its own. This ceiling is what keeps a search of a corpus
@@ -172,7 +185,7 @@ const ADDRESS_HINT = "Pass one address, such as 'lemonde.fr' or 'https://lemonde
  */
 export function readAddress(value: string): string {
   const trimmed = value.trim();
-  if (trimmed === "" || /[\u0000-\u001f\u007f]/.test(trimmed)) {
+  if (trimmed === "" || CONTROL_CHARACTER.test(trimmed)) {
     throw invalidInput(
       `"${value.replace(/[\u0000-\u001f\u007f]/g, "\u2423")}" carries a character an address cannot hold, such as a line break or a tab.`,
       ADDRESS_HINT,
@@ -182,11 +195,10 @@ export function readAddress(value: string): string {
   // Everything before the first slash, question mark or hash is the host, which
   // is the part the index resolves. A host is a name carrying a dot, a numeric
   // address, or the machine this server runs on; anything else names no site.
-  const host = (trimmed.replace(/^[a-z][a-z0-9+.-]*:\/\//i, "").split(/[/?#]/)[0] ?? "")
-    .replace(/^[^@]*@/, "")
-    .replace(/:\d+$/, "");
-  const namesASite =
-    host === "localhost" || /^\[[0-9a-f:]+\]$/i.test(host) || /^[^\s.]+(?:\.[^\s.]+)+$/.test(host);
+  const host = (trimmed.replace(SCHEME, "").split(HOST_END)[0] ?? "")
+    .replace(USER_INFO, "")
+    .replace(PORT, "");
+  const namesASite = host === "localhost" || NUMERIC_HOST.test(host) || DOTTED_NAME.test(host);
   if (!namesASite) {
     throw invalidInput(
       `"${trimmed}" does not name a web address, so there is nothing here to look up.`,
@@ -209,14 +221,13 @@ export function readAddress(value: string): string {
  * index writes older captures with it.
  */
 export function sameAddress(asked: string, captured: string): boolean {
-  const withoutDefaultPort = (value: string) =>
-    value.replace(/^((?:[a-z][a-z0-9+.-]*:\/\/)?[^/]*?):(?:80|443)(?=$|\/)/, "$1");
+  const withoutDefaultPort = (value: string) => value.replace(DEFAULT_PORT, "$1");
   const tidy = (value: string) =>
-    withoutDefaultPort(value.trim().toLowerCase()).replace(/\/+$/, "");
-  const withoutScheme = (value: string) => value.replace(/^[a-z][a-z0-9+.-]*:\/\//, "");
+    withoutDefaultPort(value.trim().toLowerCase()).replace(TRAILING_SLASHES, "");
+  const withoutScheme = (value: string) => value.replace(LOWERCASE_SCHEME, "");
   const a = tidy(asked);
   const c = tidy(captured);
-  return /^[a-z][a-z0-9+.-]*:\/\//.test(a) ? a === c : withoutScheme(a) === withoutScheme(c);
+  return LOWERCASE_SCHEME.test(a) ? a === c : withoutScheme(a) === withoutScheme(c);
 }
 
 /**

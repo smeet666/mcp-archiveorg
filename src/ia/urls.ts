@@ -17,6 +17,15 @@ import {
   SORT,
 } from "./paths.js";
 
+const AMPERSAND = /&/;
+const WHITESPACE_RUN = /(\s+)/;
+const BLANK = /^\s*$/;
+const AMPERSAND_IN_WORD = /\w&|&\w/;
+/** The field a search term names, as in `title:` or `creator:`. */
+const FIELD_PREFIX = /^([A-Za-z_][A-Za-z0-9_]*:)(.+)$/;
+/** A Wayback timestamp, from the year alone to the second. */
+const TIMESTAMP = /^(\d{4})(\d{2})(\d{2})(\d{2})?(\d{2})?(\d{2})?$/;
+
 function withQuery(base: string, params: Record<string, string | number | undefined>): string {
   const url = new URL(base);
   for (const [key, value] of Object.entries(params)) {
@@ -63,7 +72,7 @@ export function foldAmpersands(query: string): { query: string; folded: string[]
     }
 
     if (quoted) {
-      if (!/&/.test(part)) {
+      if (!AMPERSAND.test(part)) {
         return part;
       }
       const read = part
@@ -77,15 +86,15 @@ export function foldAmpersands(query: string): { query: string; folded: string[]
     }
 
     return part
-      .split(/(\s+)/)
+      .split(WHITESPACE_RUN)
       .map((token) => {
-        if (/^\s*$/.test(token) || !/\w&|&\w/.test(token) || token.includes("&&")) {
+        if (BLANK.test(token) || !AMPERSAND_IN_WORD.test(token) || token.includes("&&")) {
           return token;
         }
         // A field name before the colon is query syntax rather than words to
         // match, so it stays outside the quotes it would otherwise be searched
         // as part of.
-        const field = /^([A-Za-z_][A-Za-z0-9_]*:)(.+)$/.exec(token);
+        const field = FIELD_PREFIX.exec(token);
         const [prefix, value] = field ? [field[1] ?? "", field[2] ?? ""] : ["", token];
         const read = value
           .replace(/&+/g, " ")
@@ -243,7 +252,7 @@ export function toArchiveStamp(date: Date): string {
 
 /** Reads a stamp back, returning null rather than an invalid date. */
 export function fromArchiveStamp(stamp: string): Date | null {
-  const m = /^(\d{4})(\d{2})(\d{2})(\d{2})?(\d{2})?(\d{2})?$/.exec(stamp.trim());
+  const m = TIMESTAMP.exec(stamp.trim());
   if (!m) {
     return null;
   }

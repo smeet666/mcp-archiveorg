@@ -36,6 +36,8 @@ import {
 import { decodeEntities, readProse } from "./text.js";
 import { fromArchiveStamp } from "./urls.js";
 
+const FOUR_DIGITS = /(\d{4})/;
+
 type Json = Record<string, unknown>;
 
 const asObject = (value: unknown): Json | null =>
@@ -138,7 +140,7 @@ function asYear(value: unknown): number | null {
   }
 
   const text = asString(value);
-  const m = text ? /(\d{4})/.exec(text) : null;
+  const m = text ? FOUR_DIGITS.exec(text) : null;
   return m ? plausible(Number(m[1])) : null;
 }
 
