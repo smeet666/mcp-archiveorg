@@ -25,7 +25,10 @@
     "url": "git+https://github.com/smeet666/mcp-archiveorg.git"
   },
   "license": "MIT",
-  "author": "Damien Bouissou",
+  "author": {
+    "name": "Damien Bouissou",
+    "url": "https://github.com/smeet666"
+  },
   "type": "module",
   "bin": {
     "mcp-archiveorg": "dist/index.js"
