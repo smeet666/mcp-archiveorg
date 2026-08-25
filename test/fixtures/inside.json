@@ -48,7 +48,9 @@
               "file_basename": "orchard-quarterly-1902-04"
             },
             "highlight": {
-              "text": ["a report that {{{the lamps went out}}} before the vote"]
+              "text": [
+                "a report that {{{the lamps went out}}} before the vote"
+              ]
             }
           }
         ]

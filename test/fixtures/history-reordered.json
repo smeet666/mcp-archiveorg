@@ -1,4 +1,12 @@
 [
-  ["statuscode", "timestamp", "original"],
-  ["301", "20030101000000", "http://example.invalid/"]
+  [
+    "statuscode",
+    "timestamp",
+    "original"
+  ],
+  [
+    "301",
+    "20030101000000",
+    "http://example.invalid/"
+  ]
 ]

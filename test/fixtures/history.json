@@ -1,6 +1,22 @@
 [
-  ["timestamp", "original", "statuscode"],
-  ["20010428102248", "http://example.invalid/", "200"],
-  ["20020122140100", "http://example.invalid/", "200"],
-  ["20040915071122", "http://example.invalid/", "404"]
+  [
+    "timestamp",
+    "original",
+    "statuscode"
+  ],
+  [
+    "20010428102248",
+    "http://example.invalid/",
+    "200"
+  ],
+  [
+    "20020122140100",
+    "http://example.invalid/",
+    "200"
+  ],
+  [
+    "20040915071122",
+    "http://example.invalid/",
+    "404"
+  ]
 ]

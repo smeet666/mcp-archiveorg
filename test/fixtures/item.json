@@ -25,7 +25,10 @@
   "metadata": {
     "identifier": "the-glass-orchard-1971",
     "title": "The Glass Orchard",
-    "creator": ["Vashti Reame", "Orchard Pictures"],
+    "creator": [
+      "Vashti Reame",
+      "Orchard Pictures"
+    ],
     "description": "A field recording made across two winters in the salt country.",
     "date": "1971-06-04",
     "year": "1971",
@@ -33,7 +36,10 @@
     "language": "eng",
     "mediatype": "movies",
     "downloads": 8421,
-    "collection": ["feature_films", "moviesandfilms"],
+    "collection": [
+      "feature_films",
+      "moviesandfilms"
+    ],
     "licenseurl": "https://creativecommons.org/licenses/by/4.0/"
   },
   "ignored_block": {
