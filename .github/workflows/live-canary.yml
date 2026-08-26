@@ -57,7 +57,7 @@ jobs:
 
       - name: Report a broken canary
         if: failure()
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             const title = "Live canary failing: the the Internet Archive API may have changed";
