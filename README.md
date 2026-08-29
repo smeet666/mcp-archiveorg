@@ -8,15 +8,26 @@
 [![M8ven](https://m8ven.ai/badge/mcp/smeet666-mcp-archiveorg-1wia08?variant=verified)](https://m8ven.ai/mcp/smeet666-mcp-archiveorg-1wia08)
 [![Install in Cursor](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/en/install-mcp?name=archiveorg&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsIm1jcC1hcmNoaXZlb3JnIl19)
 [![Install in VS Code](https://img.shields.io/badge/VS_Code-Install-0098FF?style=flat&logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=archiveorg&config=%7B%22name%22%3A%22archiveorg%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22mcp-archiveorg%22%5D%7D)
+
 <!-- m8ven-verify: 1b912922cee8f3a46080bbb4b83487e1 -->
 
-An MCP server for the Internet Archive. **Search the text inside digitised
-books**, browse the catalogue, and read Wayback Machine captures. No API key, no
-account, no configuration.
+The [Internet Archive](https://archive.org) is a non-profit library that keeps
+what the world publishes: scanned books, films, recorded music, radio, software,
+and the pages of the web itself, captured over and over since 1996 in the Wayback
+Machine. Millions of its books and documents have been run through optical
+character recognition, so the words inside them can be searched, and the Open
+Library index beside it describes works, their editions and their subjects.
 
-_(Version française plus bas / French version below)_
+This server connects a chat client to that library. You can search the full text
+inside its documents, search its catalogue of items, read one item's record and
+its files, look up a book by subject, place, period or person, and read the web
+as it stood on a given day. It needs no API key and no account.
 
-## Quickstart
+_[Version française](#mcp-archiveorg-français)_
+
+---
+
+## Install
 
 **One-click install**
 
@@ -42,6 +53,8 @@ claude mcp add archiveorg -- npx -y mcp-archiveorg
 }
 ```
 
+Node 24 or later is required, and no environment variable has to be set.
+
 ### With Docker
 
 ```json
@@ -55,216 +68,290 @@ claude mcp add archiveorg -- npx -y mcp-archiveorg
 }
 ```
 
-`-i` keeps stdin open, which is where the protocol travels, and no `-t` is
-passed: a TTY rewrites the stream and breaks it. The container needs outbound
-HTTPS to `archive.org`, `web.archive.org` and `openlibrary.org`, and nothing else: no volume, no port, no environment variable, no credential.
+`-i` keeps stdin open, which is where the protocol travels, and `-t` is left out
+because a TTY rewrites the stream. The container needs outbound HTTPS to
+`archive.org`, `web.archive.org` and `openlibrary.org`, and nothing else: no
+volume, no port, no credential.
 
-**Bundle, without npm**
+### Bundle, without npm
 
-Download `mcp-archiveorg-<version>.mcpb` from
+Download `mcp-archiveorg-2.0.0.mcpb` from
 [the latest release](https://github.com/smeet666/mcp-archiveorg/releases/latest)
 and open it. A client that supports MCP bundles installs it on its own, with no
-npm and no configuration file to edit.
+npm and no configuration file to edit. The bundle carries its dependencies, so
+nothing is fetched at install time.
+
+## What you can ask
+
+- "Which books mention the Beaumont light-house?"
+- "Find me items about the 1906 San Francisco earthquake."
+- "What files does that item hold, and what licence is it under?"
+- "Find me books on beekeeping in France published before 1900."
+- "What did that website look like in March 2001?"
+
+The ordinary path runs from a search to a record: a row carries an `identifier`,
+and `get_item` reads it.
 
 ## Tools
 
-| Tool             | What it does                                           | Key parameters                                        |
-| ---------------- | ------------------------------------------------------ | ----------------------------------------------------- |
-| `search_inside`  | Finds a phrase in the text of scanned pages.           | `query`, `limit`, `page`                              |
-| `search_items`   | Searches the catalogue: films, books, audio, software. | `query`, `media_type`, `sort`                         |
-| `get_item`       | Reads one record, section by section.                  | `identifier`, `sections`, `file_format`               |
-| `get_snapshot`   | The Wayback capture closest to a date.                 | `url`, `at`                                           |
-| `list_snapshots` | Captures of a page, oldest first.                      | `url`, `limit`, `cursor`                              |
-| `search_books`   | A work on Open Library, by name or by criteria.        | `query`, `subject`, `place`, `time`, `person`, `sort` |
+| Tool             | What it does                                                      |
+| ---------------- | ----------------------------------------------------------------- |
+| `search_inside`  | Searches the words inside the archive's scanned documents.        |
+| `search_items`   | Searches the catalogue by title, creator, subject and media type. |
+| `get_item`       | Reads one item's record, its files and its licence.               |
+| `search_books`   | Finds books by subject, place, period, person, length or year.    |
+| `list_snapshots` | Lists the captures the Wayback Machine holds for an address.      |
+| `get_snapshot`   | Reads one capture of an address, at or near a date.               |
 
-The server is **read-only**. It uploads nothing and writes nothing back.
+### `search_inside`
 
-## Finding a book you cannot name
+Searches the text inside the archive's documents, which came off the page through
+optical character recognition, so a passage carries the misreadings of that
+process.
 
-`search_books` takes a title or an author. It equally takes the shape of a book
-in place of its name: what it is catalogued under, where it is set, the period it
-treats, who it is about, how long it runs, when it first appeared. The criteria
-combine, and `sort` by rating or by readers answers which of the matches is
-worth reading.
+| Argument                 | Type                               | Required | What it does                                 |
+| ------------------------ | ---------------------------------- | -------- | -------------------------------------------- |
+| `query`                  | string, 2 to 300 characters        | yes      | The phrase to look for inside the documents. |
+| `limit`                  | integer, 1 to 50, default `10`     | no       | Matches to serve.                            |
+| `page`                   | integer, 1 to 100, default `1`     | no       | Which page of matches.                       |
+| `max_excerpt_chars`      | integer, 80 to 1200, default `300` | no       | How much of a passage to serve.              |
+| `max_excerpts_per_match` | integer, 1 to 10, default `3`      | no       | Passages served per matching document.       |
 
-Asking for works on grief, in English, under 250 pages, first published between
-2000 and 2020, ordered by how many readers recorded them, returns _A Monster
-Calls_ and _The Tiger Rising_ rather than a list of books with "grief" in the
-title. The page count comes back on every row, because filtering on a number the
-answer never shows would be a promise it cannot keep.
+**In return:** `hits`, each carrying `identifier`, which `get_item` takes;
+`title`, `creator` and `year`; `excerpts`, the passages as a machine read them
+off the page; `matched_file`, naming what actually holds the passage; and
+`source_url`. `inside_container` is true when the item bundles several documents
+and the passage sits in one of them, in which case the title, the creator and the
+year belong to the container.
 
-## Searching inside the books is the point
+**`total` counts documents, and it pages.** It is a number of documents and the last page of a match set is shorter than the
+first. **No page number is available:** the index reports where the text sits
+inside the item, which is `1` on nearly every match, so nothing here states a
+page of a book and no link claims one.
 
-A catalogue search reads titles and descriptions. `search_inside` reads what
-optical character recognition took off millions of scanned pages, so it answers
-a question nothing else here can: _which book contains this phrase_. A match
-comes back with the item, the passage around the phrase, and a link.
+### `search_items`
 
-### Three things it will not pretend to know
+Searches the catalogue itself, across every kind of thing the archive holds.
 
-**There is no page number.** The index reports where the search text sits
-inside the item, which is `1` on nearly every match. It is not a leaf of the
-book. Nothing here publishes a page, and no link claims one: a citation naming
-a page the index does not know is worse than a citation naming none.
+| Argument     | Type                                                                         | Required | What it does                        |
+| ------------ | ---------------------------------------------------------------------------- | -------- | ----------------------------------- |
+| `query`      | string, 1 to 300 characters                                                  | yes      | Words to look for in the catalogue. |
+| `media_type` | `texts`, `movies`, `audio`, `image`, `software`, `data` or `web`             | no       | The kind of thing to keep.          |
+| `year_from`  | integer, 1 to 2200                                                           | no       | Earliest year.                      |
+| `year_to`    | integer, 1 to 2200                                                           | no       | Latest year.                        |
+| `sort`       | `relevance`, `downloads`, `newest`, `oldest` or `title`, default `relevance` | no       | How the rows are ordered.           |
+| `limit`      | integer, 1 to 50, default `10`                                               | no       | Rows to serve.                      |
+| `page`       | integer, 1 to 100, default `1`                                               | no       | Which page of rows.                 |
 
-**`total` counts documents, and it pages.** It is not a number of occurrences.
-The last page of a match set is shorter than the first and the one after it is
-empty, so read past page 1 rather than treating the first answer as the whole
-of it.
+**In return:** `items`, each carrying `identifier`, `title`, `creator`, `year`,
+`media_type`, `downloads` and `source_url`, a field the record leaves empty being
+`null`. `total` counts the items matching across the catalogue, which is more
+than the number returned.
 
-**A title can describe the container.** An item can bundle several documents,
-and a match inside one of them carries the item's title, creator and year.
-`inside_container` says when that happened, and `matched_file` names what
-actually holds the passage.
+### `get_item`
 
-## Other things worth knowing
+Reads one item's record. The heavier parts are asked for rather than served by
+default, since a record can run long.
 
-**A capture is rarely on the date you asked for.** `get_snapshot` always
-reports `days_from_requested`, counted as whole days from the moment asked
-about, so a capture taken later on the day you named is 0. The closest capture
-of a quiet site can be years away. A page asked for in March 1994 can answer with December 1996. A
-date that came back with nothing is set aside and the address is looked up on
-its own, which is said in a note: an address with no capture near a date is a
-different thing from an address the Wayback Machine never captured.
+| Argument                | Type                                                            | Required | What it does                          |
+| ----------------------- | --------------------------------------------------------------- | -------- | ------------------------------------- |
+| `identifier`            | string, 1 to 200 characters                                     | yes      | The identifier a search row carries.  |
+| `sections`              | array of `basic`, `files`, `full_metadata`, default `["basic"]` | no       | Which parts to return.                |
+| `file_format`           | string, up to 60 characters                                     | no       | Keep the files of one format.         |
+| `max_files`             | integer, 1 to 200, default `25`                                 | no       | Ceiling on the files returned.        |
+| `max_description_chars` | integer, 100 to 20000, default `2000`                           | no       | How much of the description to serve. |
 
-**An ampersand written against a word travels as a space.** The catalogue's
-query parser refuses `AT&T` outright, and its index folds punctuation before it
-matches, so `search_items` sends the term as the phrase `"AT T"` and says so in
-a note. The rows are the ones printing the ampersand.
+**In return:** the item with its `title`, `creator`, `year`, `media_type` and
+`source_url`, plus `description`, `date`, `publisher`, `language`, `collections`
+and `license_url`, each `null` where the record states nothing. `file_count`
+counts the files the item holds whatever this answer returned, and `total_bytes`
+their weight. `files` and `full_metadata` are present only when asked for in
+`sections`.
 
-**One site sits in the index under several addresses.** Its `www` form, its
-`https` form and a form carrying credentials are separate addresses with
-separate histories, and a lookup for one answers with a capture of another.
-Every capture carries the `address` it is of. `list_snapshots` says when its
-rows cover more than one, because counting them then counts captures of all of
-them together.
+### `search_books`
 
-**The capture index is slow, and it has no offset.** Tens of seconds on a busy
-address, and it ignores an offset entirely. It pages by a key it hands back:
-pass `next_cursor` as `cursor`, and a null one means the end of the history.
+Finds books through the index of works beside the archive, which describes a work
+and its editions rather than one scanned copy.
 
-**A catalogue search matches descriptions too.** A compilation whose notes
-mention a name ranks alongside that person's own work. Read `creator` before
-attributing a result.
+| Argument    | Type                                                                        | Required | What it does                           |
+| ----------- | --------------------------------------------------------------------------- | -------- | -------------------------------------- |
+| `query`     | string, 2 to 300 characters                                                 | no       | Free text, when there is any.          |
+| `subject`   | string, 2 to 100 characters                                                 | no       | A subject the index files works under. |
+| `place`     | string, 2 to 100 characters                                                 | no       | A place a work is about.               |
+| `time`      | string, 2 to 100 characters                                                 | no       | A period a work is about.              |
+| `person`    | string, 2 to 100 characters                                                 | no       | A person a work is about.              |
+| `language`  | string, 2 to 20 characters                                                  | no       | The language of the work.              |
+| `year_from` | integer, 1 to 2200                                                          | no       | Earliest first publication.            |
+| `year_to`   | integer, 1 to 2200                                                          | no       | Latest first publication.              |
+| `pages_min` | integer, 1 to 100000                                                        | no       | Shortest acceptable work.              |
+| `pages_max` | integer, 1 to 100000                                                        | no       | Longest acceptable work.               |
+| `sort`      | `relevance`, `rating`, `readers`, `newest` or `oldest`, default `relevance` | no       | How the rows are ordered.              |
+| `limit`     | integer, 1 to 50, default `10`                                              | no       | Rows to serve.                         |
+| `page`      | integer, 1 to 100, default `1`                                              | no       | Which page of rows.                    |
 
-**A date on a catalogue row is one field, and it is not a chronology.**
-`oldest`, `newest`, `year_from` and `year_to` all read the date whoever
-deposited an item typed into the record. An item the Archive holds no date for
-carries a placeholder at the start of the calendar, a date written as a
-fragment is filed at the year that fragment reads as, and the field carries no
-era, so a clay tablet made in 1712 BCE answers a range of 1700 to 1750. Every
-answer ranked or filtered on that field says so, and counts the rows on the
-page carrying no year this server could read.
+**In return:** `books`, each carrying `title`, `authors`, `first_published_year`,
+`edition_count`, `archive_identifiers` for the scanned copies the archive holds,
+`scan_count`, `page_count` as a median across editions, `subjects` and
+`source_url`. `searched_for` says in words what this answer answers, free text
+and every criterion applied, and `query` is `null` when the search was made of
+criteria alone. `total` counts the works matching.
 
-**Quoting holds the word order, not the spelling.** A quoted phrase comes back
-with its words together and in the order given. The index folds accents, case
-and punctuation before it matches, so `"bûcher"` also answers with pages
-printing `Bücher` and `Bucher`. Read an excerpt before repeating a quoted query
-as the spelling a page carries.
+### `list_snapshots`
 
-**Scanned text is machine-read.** Excerpts carry the misreadings that come with
-it. Quote them as scanned text and follow the link.
+Lists the captures the Wayback Machine holds for one address.
 
-**Nothing states what may be reused.** Many items carry no licence at all, and
-the Archive holds material under every possible term. `get_item` says so rather
-than letting silence read as permission.
+| Argument | Type                            | Required | What it does                               |
+| -------- | ------------------------------- | -------- | ------------------------------------------ |
+| `url`    | string, 3 to 2000 characters    | yes      | The address to look up.                    |
+| `limit`  | integer, 1 to 100, default `20` | no       | Captures to serve.                         |
+| `cursor` | string, up to 500 characters    | no       | The `next_cursor` a previous answer named. |
+
+**In return:** `snapshots`, each with its `captured_at` as an ISO timestamp in
+UTC, the `url` of the capture itself, and the `status` the crawl recorded.
+`first` and `last` describe this answer rather than the whole history, and
+`next_cursor` continues the listing.
+
+### `get_snapshot`
+
+Reads one capture of an address, at a date or near it.
+
+| Argument | Type                             | Required | What it does                                        |
+| -------- | -------------------------------- | -------- | --------------------------------------------------- |
+| `url`    | string, 3 to 2000 characters     | yes      | The address to look up.                             |
+| `at`     | `YYYY-MM-DD` or an ISO timestamp | no       | The date to aim for. The newest capture by default. |
+
+**In return:** the `snapshot` with its `captured_at` and its address, beside the
+`requested_url` and `requested_at`, so the distance between the date asked for
+and the capture served is visible. The Wayback Machine answers a date it has no
+capture for with the nearest one it holds.
+
+## What excerpts are worth
+
+The text inside a scanned document came off the page through optical character
+recognition. A passage therefore carries the misreadings of that process, and it
+is served as it was read rather than corrected: a word that reads oddly is what
+the machine saw. Quote a passage as an excerpt of a scan, and link the item so a
+reader can look at the page.
 
 ## Configuration
 
-Every variable is optional. Set them in the `env` block of your MCP client.
+Every variable is optional. Set them in the `env` block of your client config.
 
-| Variable                | Default                | Purpose                                                                                                  |
-| ----------------------- | ---------------------- | -------------------------------------------------------------------------------------------------------- |
-| `IA_USER_AGENT`         | _(project identifier)_ | Identify your own client. The project's identifier is appended, so the Archive can always reach a human. |
-| `IA_MIN_INTERVAL_MS`    | `1000`                 | Minimum gap between requests. Values below 500 ms are refused.                                           |
-| `IA_TIMEOUT_MS`         | `20000`                | Per-request deadline.                                                                                    |
-| `IA_HISTORY_TIMEOUT_MS` | `60000`                | Deadline for the capture index, which is slow by design.                                                 |
-| `IA_MAX_RETRIES`        | `3`                    | Retries on rate limiting and transient errors.                                                           |
-| `IA_CACHE_TTL_MS`       | `900000`               | In-memory cache lifetime. `0` turns it off.                                                              |
-| `IA_CACHE_MAX_ENTRIES`  | `200`                  | In-memory cache size.                                                                                    |
-| `IA_LOG_LEVEL`          | `error`                | `silent`, `error`, `info` or `debug`. Logs go to stderr.                                                 |
+| Variable                | Default              | What it does                                                                          |
+| ----------------------- | -------------------- | ------------------------------------------------------------------------------------- |
+| `IA_USER_AGENT`         | the project identity | Names your application to the archive, with an address where a person can be reached. |
+| `IA_MIN_INTERVAL_MS`    | `1000`               | Gap between two requests, from 500 to 60000.                                          |
+| `IA_TIMEOUT_MS`         | `20000`              | Deadline for one request, from 1000 to 120000.                                        |
+| `IA_HISTORY_TIMEOUT_MS` | `60000`              | Deadline for a Wayback Machine history, from 5000 to 180000.                          |
+| `IA_MAX_RETRIES`        | `3`                  | Attempts after a transient failure, from 0 to 8.                                      |
+| `IA_CACHE_TTL_MS`       | `900000`             | How long an answer stays in memory, from 0 to 86400000.                               |
+| `IA_CACHE_MAX_ENTRIES`  | `200`                | Answers held in memory at once, from 1 to 5000.                                       |
+| `IA_LOG_LEVEL`          | `error`              | `silent`, `error`, `info` or `debug`, written to stderr.                              |
 
-## How this server treats the Archive
+A value outside its range falls back to the default, and the reason is written to
+stderr.
 
-The Internet Archive is a non-profit that charges nobody and turns nobody away.
-This server paces itself to one request at a time with a gap that configuration
-can widen but never narrow past half a second, widens it further when the site
-pushes back, caches what it reads, and identifies itself with an address a human
-can be reached at. A caller may say who they are; that address is appended
-rather than replaced.
+## Errors
 
-`archive.org/robots.txt` disallows only `/control/` and `/report/`, neither of
-which is touched here. No route used requires a key, and none of them is
-documented: they are the routes the Archive's own pages call, which is why the
-nightly canary matters more here than it would against a published API.
+Every failure carries one of six codes, a message, and where it helps a hint
+naming the next move.
 
-## Troubleshooting
+| Code            | What happened                                           | What to do                                                                                                 |
+| --------------- | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `not_found`     | The archive answered, and holds no such item.           | Check the identifier with `search_items`.                                                                  |
+| `invalid_input` | The arguments were refused before any request went out. | Read the message, which names the argument.                                                                |
+| `rate_limited`  | The archive asked this client to slow down.             | Wait the number of seconds the hint names and call again with the same arguments. The item is still there. |
+| `parse_failure` | The answer arrived in a shape this client cannot read.  | Report it at [the issue tracker](https://github.com/smeet666/mcp-archiveorg/issues).                       |
+| `network_error` | The request did not complete.                           | Try again shortly.                                                                                         |
+| `timeout`       | The request passed its deadline.                        | Raise `IA_TIMEOUT_MS`, or `IA_HISTORY_TIMEOUT_MS` for a capture history.                                   |
 
-**`rate_limited`.** The Archive asked this client to slow down. It never means
-the thing you asked for is missing.
+## As a library
 
-**`invalid_input` on a search.** The query was refused rather than answered.
-An unbalanced quotation mark, bracket or colon is read as an operator.
+The layer reading the archive is published on its own, with its pacing, its cache
+and its errors, and with no protocol attached.
 
-**`invalid_input` on an identifier or an address.** `get_item` takes the last
-part of an item's address, such as `nasa`, and matches it exactly, capitals
-included; the capture tools take a web address. A value that is neither is
-refused, because looking it up would come back as an absence.
+```ts
+import { ArchiveClient } from "mcp-archiveorg/client";
 
-**`parse_failure`.** A response arrived in a shape this server cannot read,
-which usually means a route changed. Please
-[open an issue](https://github.com/smeet666/mcp-archiveorg/issues) with the
-arguments you used.
+const client = new ArchiveClient();
+const { data, cached } = await client.searchItems({ query: "san francisco earthquake" });
+console.log(data.total, cached);
+```
+
+Each read answers `{ data, cached }`, and throws an error carrying one of the six
+codes. The floor between two requests holds here as well.
+
+## Pacing and attribution
+
+Requests go out one at a time with at least a second between them, and the floor
+of half a second holds however the server is configured. The `User-Agent` always
+ends with the project identity and an address where a person can be reached. The
+Internet Archive is a non-profit library, and a search inside its documents is
+one of the more expensive questions it answers.
+
+Every result carries the address of the page it was read from. The items belong
+to the people and institutions who deposited them, under the terms each record
+states in `license_url`.
+
+This MCP server is an unofficial project, with no affiliation to the Internet
+Archive.
+
+## Privacy
+
+This server collects nothing about you and sends nothing to its author. It runs
+on your machine, contacts `archive.org`, `web.archive.org` and `openlibrary.org` and nothing else, holds its answers in memory
+while it runs, and writes nothing to disk.
+[PRIVACY.md](PRIVACY.md) states what a request carries and which settings change
+any of it.
 
 ## Development
 
 ```bash
 npm install
-npm test                 # unit tests, no network
-npm run typecheck
-npm run build
-IA_LIVE=1 npm run test:live   # one request per route against the real site
-npm run inspector        # explore the tools in the MCP Inspector
+npm run build:fixtures
+npm test
+npm run check
 ```
 
-Fixtures are generated rather than captured: `npm run build:fixtures` writes a
-corpus of invented titles and passages, so tests are deterministic and no
-Archive content lives in this repository.
-
-The access layer under `src/ia` does not import the MCP SDK and is published
-separately as `mcp-archiveorg/client`, usable as a plain library.
+Tests run against generated fixtures and make no network request. The live suite,
+`npm run test:live`, makes one request per route and runs nightly against the
+archive itself.
 
 ## Contributing
 
-Bugs, questions and ideas all belong in
-[the issue tracker](https://github.com/smeet666/mcp-archiveorg/issues).
-Pull requests are welcome; please open an issue first so we can agree on what
-the right answer is before you write it. [CONTRIBUTING.md](CONTRIBUTING.md) has
-the detail, and [SECURITY.md](SECURITY.md) covers anything exploitable.
-
-## Support
-
-Free, and it stays free. If it saved you some time, you can
-[buy me a coffee](https://buymeacoffee.com/smeet666).
+Bugs, questions and ideas belong in
+[the issue tracker](https://github.com/smeet666/mcp-archiveorg/issues). Pull
+requests are welcome; opening an issue first helps agree on the shape of the
+change. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
-MIT. See [LICENSE](LICENSE). The licence covers this source code only, not the
-material retrieved through it, which carries whatever terms its depositor
-attached, and often none at all.
-
-This is an unofficial project, with no affiliation to or endorsement by the
-Internet Archive.
+MIT, see [LICENSE](LICENSE). The items belong to their depositors, under the
+terms each record states.
 
 ---
 
+<a name="mcp-archiveorg-français"></a>
+
 # mcp-archiveorg (français)
 
-Un serveur MCP pour l'Internet Archive. **Cherchez une phrase dans le texte des
-livres numérisés**, parcourez le catalogue, et lisez les captures de la Wayback
-Machine. Sans clé d'API, sans compte, sans configuration.
+_[English version](#mcp-archiveorg)_
 
-## Démarrage rapide
+L'[Internet Archive](https://archive.org) est une bibliothèque à but non lucratif
+qui conserve ce que le monde publie : livres numérisés, films, musique
+enregistrée, radio, logiciels, et les pages du web elles-mêmes, capturées encore
+et encore depuis 1996 dans la Wayback Machine. Des millions de ses livres et
+documents sont passés par la reconnaissance optique de caractères, si bien que
+les mots qu'ils contiennent sont cherchables, et l'index Open Library qui la
+côtoie décrit les œuvres, leurs éditions et leurs sujets.
+
+Ce serveur relie un client de conversation à cette bibliothèque. On peut y
+chercher dans le texte intégral de ses documents, chercher dans son catalogue,
+lire la fiche d'un document et ses fichiers, trouver un livre par sujet, lieu,
+période ou personne, et lire le web tel qu'il était un jour donné. Aucune clé
+d'API, aucun compte.
+
+## Installation
 
 **Installation en un clic**
 
@@ -277,7 +364,7 @@ Machine. Sans clé d'API, sans compte, sans configuration.
 claude mcp add archiveorg -- npx -y mcp-archiveorg
 ```
 
-**Claude Desktop, Cursor, et tout client utilisant le format standard**
+**Claude Desktop, Cursor, et tout client au format de configuration standard**
 
 ```json
 {
@@ -289,6 +376,9 @@ claude mcp add archiveorg -- npx -y mcp-archiveorg
   }
 }
 ```
+
+Node 24 ou plus récent est nécessaire, et aucune variable d'environnement n'est à
+renseigner.
 
 ### Avec Docker
 
@@ -303,204 +393,265 @@ claude mcp add archiveorg -- npx -y mcp-archiveorg
 }
 ```
 
-`-i` garde l'entrée standard ouverte, qui est le canal du protocole, et aucun
-`-t` n'est passé : un terminal réécrit le flux et le casse. Le conteneur a besoin
-d'un accès HTTPS sortant vers `archive.org`, `web.archive.org` et `openlibrary.org`, et de rien d'autre :
-aucun volume, aucun port, aucune variable d'environnement, aucun identifiant.
+`-i` garde l'entrée standard ouverte, qui est le canal du protocole, et `-t` est
+omis parce qu'un TTY réécrit le flux. Le conteneur a besoin d'un accès HTTPS
+sortant vers `archive.org`, `web.archive.org` et `openlibrary.org`, et de rien
+d'autre : aucun volume, aucun port, aucun identifiant.
 
-**Bundle, sans npm**
+### Bundle, sans npm
 
-Téléchargez `mcp-archiveorg-<version>.mcpb` depuis
-[la dernière release](https://github.com/smeet666/mcp-archiveorg/releases/latest)
-et ouvrez-le. Un client compatible l'installe seul, sans npm ni fichier de
-configuration à modifier.
+Téléchargez `mcp-archiveorg-2.0.0.mcpb` depuis
+[la dernière publication](https://github.com/smeet666/mcp-archiveorg/releases/latest)
+et ouvrez-le. Un client qui gère les bundles MCP l'installe seul, sans npm et
+sans fichier de configuration à modifier. Le bundle emporte ses dépendances, donc
+rien n'est téléchargé à l'installation.
 
-## Outils
+## Ce qu'on peut demander
 
-| Outil            | Rôle                                                    | Paramètres principaux                                 |
-| ---------------- | ------------------------------------------------------- | ----------------------------------------------------- |
-| `search_inside`  | Trouve une phrase dans le texte des pages numérisées.   | `query`, `limit`, `page`                              |
-| `search_items`   | Cherche le catalogue : films, livres, audio, logiciels. | `query`, `media_type`, `sort`                         |
-| `get_item`       | Lit une fiche, section par section.                     | `identifier`, `sections`, `file_format`               |
-| `get_snapshot`   | La capture Wayback la plus proche d'une date.           | `url`, `at`                                           |
-| `list_snapshots` | Les captures d'une page, de la plus ancienne.           | `url`, `limit`, `cursor`                              |
-| `search_books`   | Une œuvre sur Open Library, par nom ou par critères.    | `query`, `subject`, `place`, `time`, `person`, `sort` |
+- « Quels livres mentionnent le phare de Beaumont ? »
+- « Trouve-moi des documents sur le tremblement de terre de San Francisco en 1906. »
+- « Quels fichiers contient ce document, et sous quelle licence ? »
+- « Trouve-moi des livres sur l'apiculture en France publiés avant 1900. »
+- « À quoi ressemblait ce site en mars 2001 ? »
 
-Le serveur est **en lecture seule**. Il ne téléverse rien et n'écrit rien.
+Le chemin ordinaire va d'une recherche à une fiche : une ligne porte un
+`identifier`, et `get_item` le lit.
 
-## Trouver un livre dont on ignore le titre
+## Les outils
 
-`search_books` accepte un titre ou un auteur. Il accepte tout autant la forme
-d'un livre à la place de son nom : son sujet, le lieu où il se déroule, l'époque qu'il traite, la personne dont il
-parle, sa longueur, sa date de première parution. Les critères se combinent, et
-`sort` par note ou par nombre de lecteurs répond à la question de savoir lequel
-mérite d'être lu.
+| Outil            | Ce qu'il fait                                                            |
+| ---------------- | ------------------------------------------------------------------------ |
+| `search_inside`  | Cherche dans les mots contenus dans les documents numérisés.             |
+| `search_items`   | Cherche dans le catalogue par titre, auteur, sujet et type de média.     |
+| `get_item`       | Lit la fiche d'un document, ses fichiers et sa licence.                  |
+| `search_books`   | Trouve des livres par sujet, lieu, période, personne, longueur ou année. |
+| `list_snapshots` | Liste les captures que la Wayback Machine garde d'une adresse.           |
+| `get_snapshot`   | Lit une capture d'une adresse, à une date ou près d'elle.                |
 
-Demander des œuvres sur le deuil, en anglais, sous 250 pages, parues entre 2000
-et 2020, classées par nombre de lecteurs, renvoie _A Monster Calls_ et _The Tiger
-Rising_ plutôt qu'une liste de livres portant « deuil » dans leur titre. Le
-nombre de pages figure sur chaque ligne, car filtrer sur un nombre que la réponse
-n'affiche jamais serait une promesse intenable.
+### `search_inside`
 
-## Chercher à l'intérieur des livres est le cœur du sujet
+Cherche dans le texte contenu dans les documents, texte issu de la reconnaissance
+optique de caractères, donc un passage porte les erreurs de lecture de ce
+procédé.
 
-Une recherche de catalogue lit les titres et les descriptions. `search_inside`
-lit ce que la reconnaissance de caractères a tiré de millions de pages
-numérisées, et répond donc à une question qu'aucun autre outil ici ne sait
-traiter : _quel livre contient cette phrase_.
+| Argument                 | Type                            | Requis | Ce qu'il fait                               |
+| ------------------------ | ------------------------------- | ------ | ------------------------------------------- |
+| `query`                  | chaîne, 2 à 300 caractères      | oui    | La phrase à chercher dans les documents.    |
+| `limit`                  | entier, 1 à 50, défaut `10`     | non    | Correspondances à servir.                   |
+| `page`                   | entier, 1 à 100, défaut `1`     | non    | Quelle page de correspondances.             |
+| `max_excerpt_chars`      | entier, 80 à 1200, défaut `300` | non    | La longueur de passage à servir.            |
+| `max_excerpts_per_match` | entier, 1 à 10, défaut `3`      | non    | Passages servis par document correspondant. |
 
-### Trois choses qu'il refuse de prétendre savoir
+**En retour :** `hits`, chacun portant `identifier`, que `get_item` reprend ;
+`title`, `creator` et `year` ; `excerpts`, les passages tels qu'une machine les a
+lus sur la page ; `matched_file`, qui nomme ce qui contient réellement le
+passage ; et `source_url`. `inside_container` est vrai quand le document en
+rassemble plusieurs et que le passage se trouve dans l'un d'eux, auquel cas le
+titre, l'auteur et l'année appartiennent au contenant.
 
-**Il n'y a pas de numéro de page.** L'index indique où se situe le texte
-cherchable dans l'élément, ce qui vaut `1` sur presque toutes les
-correspondances. Ce n'est pas un feuillet du livre. Rien ici ne publie de page,
-et aucun lien n'en revendique : une citation qui nomme une page que l'index
-ignore est pire qu'une citation qui n'en nomme aucune.
+**`total` compte des documents, et il pagine.** C'est un nombre de documents et la dernière page d'un ensemble est plus courte
+que la première. **Aucun numéro de page n'est disponible :** l'index indique où
+le texte se trouve dans le document, ce qui vaut `1` sur presque toutes les
+correspondances, donc rien ici n'énonce une page de livre et aucun lien n'en
+revendique.
 
-**`total` compte des documents, et il se pagine.** Ce n'est pas un nombre
-d'occurrences. Lisez au-delà de la page 1 plutôt que de prendre la première
-réponse pour la totalité.
+### `search_items`
 
-**Un titre peut décrire le contenant.** Un élément peut regrouper plusieurs
-documents. `inside_container` le signale, et `matched_file` nomme celui qui
-porte réellement le passage.
+Cherche dans le catalogue lui-même, à travers tout ce que l'archive conserve.
 
-## Autres points utiles
+| Argument     | Type                                                                        | Requis | Ce qu'il fait                     |
+| ------------ | --------------------------------------------------------------------------- | ------ | --------------------------------- |
+| `query`      | chaîne, 1 à 300 caractères                                                  | oui    | Les mots à chercher au catalogue. |
+| `media_type` | `texts`, `movies`, `audio`, `image`, `software`, `data` ou `web`            | non    | Le type de chose à garder.        |
+| `year_from`  | entier, 1 à 2200                                                            | non    | Année la plus ancienne.           |
+| `year_to`    | entier, 1 à 2200                                                            | non    | Année la plus récente.            |
+| `sort`       | `relevance`, `downloads`, `newest`, `oldest` ou `title`, défaut `relevance` | non    | L'ordre des lignes.               |
+| `limit`      | entier, 1 à 50, défaut `10`                                                 | non    | Lignes à servir.                  |
+| `page`       | entier, 1 à 100, défaut `1`                                                 | non    | Quelle page de lignes.            |
 
-**Une capture tombe rarement sur la date demandée.** `get_snapshot` annonce
-toujours `days_from_requested`, compté en jours entiers depuis l'instant
-demandé : une capture prise plus tard dans la journée nommée vaut 0. La capture
-la plus proche d'un site peu visité peut être à des années. Une date qui ne ramène rien est écartée et l'adresse est
-interrogée seule, ce qu'une note signale : une adresse sans capture près d'une
-date n'est pas une adresse jamais capturée.
+**En retour :** `items`, chacun portant `identifier`, `title`, `creator`, `year`,
+`media_type`, `downloads` et `source_url`, un champ que la fiche laisse vide
+valant `null`. `total` compte les documents correspondants dans tout le
+catalogue, ce qui dépasse le nombre rendu.
 
-**Une esperluette collée à un mot voyage comme une espace.** L'analyseur de
-requêtes du catalogue refuse `AT&T` tel quel, et son index replie la ponctuation
-avant de comparer : `search_items` envoie donc le terme sous la forme de
-l'expression `"AT T"` et le signale dans une note. Les lignes trouvées sont bien
-celles qui écrivent l'esperluette.
+### `get_item`
 
-**Un même site occupe plusieurs adresses dans l'index.** Sa forme `www`, sa
-forme `https` et une forme portant des identifiants sont des adresses distinctes
-aux histoires distinctes, et une recherche sur l'une répond par une capture
-d'une autre. Chaque capture porte l'`address` qu'elle représente, et
-`list_snapshots` signale quand ses lignes en couvrent plusieurs : les compter
-revient alors à compter les captures de toutes à la fois.
+Lit la fiche d'un document. Les parties lourdes se demandent au lieu d'être
+servies par défaut, une fiche pouvant être longue.
 
-**L'index des captures est lent, et n'a pas d'offset.** Il l'ignore
-complètement. Il se parcourt avec la clé qu'il renvoie : repassez `next_cursor`
-en `cursor`, et une valeur nulle marque la fin de l'histoire.
+| Argument                | Type                                                             | Requis | Ce qu'il fait                           |
+| ----------------------- | ---------------------------------------------------------------- | ------ | --------------------------------------- |
+| `identifier`            | chaîne, 1 à 200 caractères                                       | oui    | L'identifiant que porte une ligne.      |
+| `sections`              | tableau de `basic`, `files`, `full_metadata`, défaut `["basic"]` | non    | Les parties à rendre.                   |
+| `file_format`           | chaîne, jusqu'à 60 caractères                                    | non    | Ne garder que les fichiers d'un format. |
+| `max_files`             | entier, 1 à 200, défaut `25`                                     | non    | Plafond sur les fichiers rendus.        |
+| `max_description_chars` | entier, 100 à 20000, défaut `2000`                               | non    | La longueur de description à servir.    |
 
-**La recherche catalogue lit aussi les descriptions.** Une compilation citant un
-nom se classe à côté des disques de cette personne. Vérifiez `creator` avant
-d'attribuer un résultat.
+**En retour :** le document avec son `title`, `creator`, `year`, `media_type` et
+`source_url`, plus `description`, `date`, `publisher`, `language`, `collections`
+et `license_url`, chacun `null` là où la fiche n'indique rien. `file_count`
+compte les fichiers que le document contient quel que soit ce que cette réponse a
+rendu, et `total_bytes` leur poids. `files` et `full_metadata` ne sont là que
+lorsqu'ils sont demandés dans `sections`.
 
-**La date d'une ligne de catalogue est un champ, et ce champ n'est pas une
-chronologie.** `oldest`, `newest`, `year_from` et `year_to` lisent tous la date
-saisie par le déposant. Un élément dont l'Archive ne détient aucune date porte
-une valeur de remplissage au tout début du calendrier, une date écrite en
-fragment est classée à l'année que ce fragment donne à lire, et le champ ne
-porte pas d'ère : une tablette d'argile de 1712 av. J.-C. répond donc à un
-intervalle 1700-1750. Toute réponse triée ou filtrée sur ce champ le dit, et
-compte les lignes de la page dont l'année est illisible pour ce serveur.
+### `search_books`
 
-**Les guillemets tiennent l'ordre des mots, pas leur graphie.** Une phrase entre
-guillemets revient avec ses mots groupés et dans l'ordre donné. L'index replie
-les accents, la casse et la ponctuation avant de comparer : `"bûcher"` répond
-donc aussi avec des pages portant `Bücher` et `Bucher`. Lisez un extrait avant
-de reprendre une requête entre guillemets comme la graphie qu'une page porte.
+Trouve des livres via l'index d'œuvres qui côtoie l'archive, lequel décrit une
+œuvre et ses éditions plutôt qu'un exemplaire numérisé.
 
-**Le texte numérisé est lu par une machine.** Les extraits en portent les
-fautes. Citez-les comme tels et suivez le lien.
+| Argument    | Type                                                                       | Requis | Ce qu'il fait                          |
+| ----------- | -------------------------------------------------------------------------- | ------ | -------------------------------------- |
+| `query`     | chaîne, 2 à 300 caractères                                                 | non    | Du texte libre, quand il y en a.       |
+| `subject`   | chaîne, 2 à 100 caractères                                                 | non    | Un sujet sous lequel l'index classe.   |
+| `place`     | chaîne, 2 à 100 caractères                                                 | non    | Un lieu dont une œuvre traite.         |
+| `time`      | chaîne, 2 à 100 caractères                                                 | non    | Une période dont une œuvre traite.     |
+| `person`    | chaîne, 2 à 100 caractères                                                 | non    | Une personne dont une œuvre traite.    |
+| `language`  | chaîne, 2 à 20 caractères                                                  | non    | La langue de l'œuvre.                  |
+| `year_from` | entier, 1 à 2200                                                           | non    | Première publication la plus ancienne. |
+| `year_to`   | entier, 1 à 2200                                                           | non    | Première publication la plus récente.  |
+| `pages_min` | entier, 1 à 100000                                                         | non    | Œuvre la plus courte acceptable.       |
+| `pages_max` | entier, 1 à 100000                                                         | non    | Œuvre la plus longue acceptable.       |
+| `sort`      | `relevance`, `rating`, `readers`, `newest` ou `oldest`, défaut `relevance` | non    | L'ordre des lignes.                    |
+| `limit`     | entier, 1 à 50, défaut `10`                                                | non    | Lignes à servir.                       |
+| `page`      | entier, 1 à 100, défaut `1`                                                | non    | Quelle page de lignes.                 |
 
-**Rien n'indique ce qui est réutilisable.** Beaucoup d'éléments ne portent
-aucune licence. `get_item` le dit, plutôt que de laisser le silence passer pour
-une permission.
+**En retour :** `books`, chacun portant `title`, `authors`,
+`first_published_year`, `edition_count`, `archive_identifiers` pour les
+exemplaires numérisés que l'archive détient, `scan_count`, `page_count` comme
+médiane sur les éditions, `subjects` et `source_url`. `searched_for` dit en mots
+ce à quoi cette réponse répond, texte libre et chaque critère appliqué, et
+`query` vaut `null` quand la recherche était faite de critères seuls. `total`
+compte les œuvres correspondantes.
+
+### `list_snapshots`
+
+Liste les captures que la Wayback Machine garde d'une adresse.
+
+| Argument | Type                           | Requis | Ce qu'il fait                                      |
+| -------- | ------------------------------ | ------ | -------------------------------------------------- |
+| `url`    | chaîne, 3 à 2000 caractères    | oui    | L'adresse à consulter.                             |
+| `limit`  | entier, 1 à 100, défaut `20`   | non    | Captures à servir.                                 |
+| `cursor` | chaîne, jusqu'à 500 caractères | non    | Le `next_cursor` nommé par une réponse précédente. |
+
+**En retour :** `snapshots`, chacune avec son `captured_at` en horodatage ISO
+UTC, l'`url` de la capture elle-même, et le `status` que la collecte a enregistré.
+`first` et `last` décrivent cette réponse plutôt que tout l'historique, et
+`next_cursor` poursuit la liste.
+
+### `get_snapshot`
+
+Lit une capture d'une adresse, à une date ou près d'elle.
+
+| Argument | Type                           | Requis | Ce qu'il fait                                         |
+| -------- | ------------------------------ | ------ | ----------------------------------------------------- |
+| `url`    | chaîne, 3 à 2000 caractères    | oui    | L'adresse à consulter.                                |
+| `at`     | `AAAA-MM-JJ` ou horodatage ISO | non    | La date visée. La capture la plus récente par défaut. |
+
+**En retour :** la `snapshot` avec son `captured_at` et son adresse, à côté de
+`requested_url` et `requested_at`, si bien que l'écart entre la date demandée et
+la capture servie est visible. La Wayback Machine répond à une date dont elle n'a
+aucune capture par la plus proche qu'elle détient.
+
+## Ce que valent les extraits
+
+Le texte contenu dans un document numérisé est issu de la reconnaissance optique
+de caractères. Un passage porte donc les erreurs de lecture de ce procédé, et il
+est servi tel qu'il a été lu plutôt que corrigé : un mot qui se lit bizarrement
+est ce que la machine a vu. Citez un passage comme l'extrait d'une numérisation,
+et liez le document pour qu'un lecteur puisse regarder la page.
 
 ## Configuration
 
-Toutes les variables sont optionnelles, à déclarer dans le bloc `env` de votre
-client.
+Chaque variable est facultative. Elles se posent dans le bloc `env` de la
+configuration du client.
 
-| Variable                | Défaut                    | Rôle                                                                                                                  |
-| ----------------------- | ------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| `IA_USER_AGENT`         | _(identifiant du projet)_ | Identifiez votre client. L'identifiant du projet est ajouté, pour que l'Archive puisse toujours joindre une personne. |
-| `IA_MIN_INTERVAL_MS`    | `1000`                    | Écart minimal entre requêtes. En dessous de 500 ms, la valeur est refusée.                                            |
-| `IA_TIMEOUT_MS`         | `20000`                   | Délai par requête.                                                                                                    |
-| `IA_HISTORY_TIMEOUT_MS` | `60000`                   | Délai pour l'index des captures, lent par nature.                                                                     |
-| `IA_MAX_RETRIES`        | `3`                       | Tentatives en cas de limitation ou d'erreur passagère.                                                                |
-| `IA_CACHE_TTL_MS`       | `900000`                  | Durée de vie du cache mémoire. `0` le désactive.                                                                      |
-| `IA_CACHE_MAX_ENTRIES`  | `200`                     | Taille du cache mémoire.                                                                                              |
-| `IA_LOG_LEVEL`          | `error`                   | `silent`, `error`, `info` ou `debug`. Sortie sur stderr.                                                              |
+| Variable                | Défaut               | Ce qu'elle fait                                                                        |
+| ----------------------- | -------------------- | -------------------------------------------------------------------------------------- |
+| `IA_USER_AGENT`         | l'identité du projet | Nomme votre application auprès de l'archive, avec une adresse où joindre une personne. |
+| `IA_MIN_INTERVAL_MS`    | `1000`               | Écart entre deux requêtes, de 500 à 60000.                                             |
+| `IA_TIMEOUT_MS`         | `20000`              | Délai d'une requête, de 1000 à 120000.                                                 |
+| `IA_HISTORY_TIMEOUT_MS` | `60000`              | Délai d'un historique Wayback Machine, de 5000 à 180000.                               |
+| `IA_MAX_RETRIES`        | `3`                  | Tentatives après un échec passager, de 0 à 8.                                          |
+| `IA_CACHE_TTL_MS`       | `900000`             | Durée pendant laquelle une réponse reste en mémoire, de 0 à 86400000.                  |
+| `IA_CACHE_MAX_ENTRIES`  | `200`                | Réponses gardées en mémoire à la fois, de 1 à 5000.                                    |
+| `IA_LOG_LEVEL`          | `error`              | `silent`, `error`, `info` ou `debug`, écrit sur la sortie d'erreur.                    |
 
-## Ce que ce serveur doit à l'Archive
+Une valeur hors de sa plage retombe sur le défaut, et la raison est écrite sur la
+sortie d'erreur.
 
-L'Internet Archive est une association qui ne facture rien et ne refuse
-personne. Ce serveur se limite à une requête à la fois, avec un écart que la
-configuration peut élargir mais jamais réduire sous la demi-seconde, l'élargit
-encore quand le site demande de l'air, met en cache ce qu'il lit, et s'identifie
-avec une adresse où joindre une personne. Un appelant peut dire qui il est ;
-cette adresse est ajoutée, pas remplacée.
+## Erreurs
 
-Le `robots.txt` d'archive.org n'interdit que `/control/` et `/report/`, dont
-aucun n'est touché ici. Aucune route utilisée n'exige de clé, et aucune n'est
-documentée : ce sont celles qu'appellent les pages du site, ce qui rend le
-canari nocturne plus important ici que face à une API publiée.
+Chaque échec porte un des six codes, un message, et quand cela aide une
+indication du geste suivant.
 
-## Dépannage
+| Code            | Ce qui s'est passé                                   | Que faire                                                                                          |
+| --------------- | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `not_found`     | L'archive a répondu, et n'a pas ce document.         | Vérifiez l'identifiant avec `search_items`.                                                        |
+| `invalid_input` | Les arguments ont été refusés avant toute requête.   | Lisez le message, qui nomme l'argument.                                                            |
+| `rate_limited`  | L'archive demande à ce client de ralentir.           | Attendez les secondes indiquées et rappelez avec les mêmes arguments. Le document est toujours là. |
+| `parse_failure` | La réponse est arrivée dans une forme illisible ici. | Signalez-le sur [le suivi d'incidents](https://github.com/smeet666/mcp-archiveorg/issues).         |
+| `network_error` | La requête n'a pas abouti.                           | Réessayez sous peu.                                                                                |
+| `timeout`       | La requête a dépassé son délai.                      | Augmentez `IA_TIMEOUT_MS`, ou `IA_HISTORY_TIMEOUT_MS` pour un historique.                          |
 
-**`rate_limited`.** L'Archive demande à ce client de ralentir. Cela ne signifie
-jamais que ce que vous cherchez est absent.
+## Comme bibliothèque
 
-**`invalid_input` sur une recherche.** La requête a été refusée, pas répondue.
-Un guillemet, un crochet ou un deux-points non équilibré est lu comme un
-opérateur.
+La couche qui lit l'archive est publiée seule, avec son rythme, son cache et ses
+erreurs, sans protocole attaché.
 
-**`invalid_input` sur un identifiant ou une adresse.** `get_item` prend la
-dernière partie de l'adresse d'un document, par exemple `nasa`, et la compare
-exactement, majuscules comprises ; les outils de capture prennent une adresse
-web. Une valeur qui n'est ni l'un ni l'autre est refusée : l'interroger
-reviendrait à annoncer une absence.
+```ts
+import { ArchiveClient } from "mcp-archiveorg/client";
 
-**`parse_failure`.** Une réponse est arrivée dans une forme illisible pour ce
-serveur, ce qui signale en général qu'une route a changé. Merci
-[d'ouvrir une issue](https://github.com/smeet666/mcp-archiveorg/issues).
+const client = new ArchiveClient();
+const { data, cached } = await client.searchItems({ query: "san francisco earthquake" });
+console.log(data.total, cached);
+```
+
+Chaque lecture répond `{ data, cached }`, et lève une erreur portant un des six
+codes. Le plancher entre deux requêtes tient également ici.
+
+## Rythme et attribution
+
+Les requêtes partent une à une avec au moins une seconde entre elles, et le
+plancher d'une demi-seconde tient quelle que soit la configuration. Le
+`User-Agent` se termine toujours par l'identité du projet et une adresse où
+joindre une personne. L'Internet Archive est une bibliothèque à but non lucratif,
+et une recherche dans le texte de ses documents est l'une des questions les plus
+coûteuses qu'elle traite.
+
+Chaque résultat porte l'adresse de la page d'où il a été lu. Les documents
+appartiennent aux personnes et aux institutions qui les ont déposés, sous les
+conditions que chaque fiche indique dans `license_url`.
+
+Ce MCP est un projet non officiel, sans affiliation à l'Internet Archive.
+
+## Confidentialité
+
+Ce serveur ne collecte rien sur vous et n'envoie rien à son auteur. Il tourne sur
+votre machine, ne joint que `archive.org`, `web.archive.org` et `openlibrary.org`, garde ses réponses en mémoire le temps qu'il
+tourne, et n'écrit rien sur le disque. [PRIVACY.md](PRIVACY.md) dit ce qu'une
+requête emporte et quels réglages changent cela.
 
 ## Développement
 
 ```bash
 npm install
-npm test                 # tests unitaires, sans réseau
-npm run typecheck
-npm run build
-IA_LIVE=1 npm run test:live   # une requête par route sur le vrai site
-npm run inspector        # explorer les outils dans le MCP Inspector
+npm run build:fixtures
+npm test
+npm run check
 ```
 
-Les fixtures sont générées, pas capturées : `npm run build:fixtures` écrit un
-corpus de titres et de passages inventés, ce qui rend les tests déterministes et
-évite de stocker du contenu de l'Archive dans ce dépôt.
-
-La couche d'accès sous `src/ia` n'importe pas le SDK MCP et est publiée
-séparément sous `mcp-archiveorg/client`, utilisable comme bibliothèque.
+Les tests s'exécutent sur des fixtures engendrées et n'émettent aucune requête.
+La suite en direct, `npm run test:live`, émet une requête par route et tourne
+chaque nuit contre l'archive elle-même.
 
 ## Contribuer
 
-Bugs, questions et idées vont dans
-[le suivi d'issues](https://github.com/smeet666/mcp-archiveorg/issues). Les
-pull requests sont bienvenues ; ouvrez d'abord une issue pour qu'on s'accorde
-sur la bonne réponse avant que vous n'écriviez le code.
-
-## Soutenir
-
-Gratuit, et ça le reste. Si ça vous a fait gagner du temps, vous pouvez
-[m'offrir un café](https://buymeacoffee.com/smeet666).
+Les anomalies, les questions et les idées ont leur place dans
+[le suivi d'incidents](https://github.com/smeet666/mcp-archiveorg/issues). Les
+propositions de modification sont bienvenues ; ouvrir un ticket d'abord aide à
+s'accorder sur la forme du changement. Voir [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Licence
 
-MIT, voir [LICENSE](LICENSE). La licence couvre uniquement ce code source, pas
-les documents récupérés par son intermédiaire, qui portent les conditions que
-leur déposant y a attachées, et souvent aucune.
-
-Projet non officiel, sans affiliation à l'Internet Archive ni approbation de sa
-part.
+MIT, voir [LICENSE](LICENSE). Les documents appartiennent à ceux qui les ont
+déposés, sous les conditions que chaque fiche indique.

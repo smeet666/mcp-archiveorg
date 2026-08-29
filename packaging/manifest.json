@@ -39,27 +39,288 @@
   "tools": [
     {
       "name": "search_inside",
-      "description": "Find a phrase in the text of scanned pages."
+      "description": "Find a phrase in the text of scanned pages.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 300,
+            "description": "Words or a quoted phrase, such as '\"call me ishmael\"'."
+          },
+          "limit": {
+            "default": 10,
+            "description": "Matches to return.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50
+          },
+          "page": {
+            "default": 1,
+            "description": "Which page of matches, from 1. Paging stops at 100.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "max_excerpt_chars": {
+            "default": 300,
+            "description": "Budget for one passage. Read it together with 'max_excerpts_per_match': the size of the answer is the product of the two and the number of matches.",
+            "type": "integer",
+            "minimum": 80,
+            "maximum": 1200
+          },
+          "max_excerpts_per_match": {
+            "default": 3,
+            "description": "Passages to keep per match. The index finds several in a long work, and the later ones rarely say anything the first did not.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10
+          }
+        },
+        "required": ["query"],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      }
     },
     {
       "name": "search_items",
-      "description": "Search the catalogue by title, creator or subject."
+      "description": "Search the catalogue by title, creator or subject.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300,
+            "description": "Words to look for in titles, creators and descriptions."
+          },
+          "media_type": {
+            "description": "Narrow to one kind of thing. Strongly recommended.",
+            "type": "string",
+            "enum": ["texts", "movies", "audio", "image", "software", "data", "web"]
+          },
+          "year_from": {
+            "description": "Earliest year, inclusive, on the record's declared date, which carries no era.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 2200
+          },
+          "year_to": {
+            "description": "Latest year, inclusive, on the record's declared date, which carries no era.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 2200
+          },
+          "sort": {
+            "default": "relevance",
+            "description": "'downloads' surfaces what people actually read, which relevance alone often buries. 'oldest' and 'newest' rank on a declared date, not on when a thing was made.",
+            "type": "string",
+            "enum": ["relevance", "downloads", "newest", "oldest", "title"]
+          },
+          "limit": {
+            "default": 10,
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50
+          },
+          "page": {
+            "default": 1,
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          }
+        },
+        "required": ["query"],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      }
     },
     {
       "name": "get_item",
-      "description": "Read one record, section by section."
+      "description": "Read one record, section by section.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "identifier": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Archive identifier, such as 'nasa'. It is the last part of an item's address rather than the address itself, and it is matched exactly, capitals included."
+          },
+          "sections": {
+            "default": ["basic"],
+            "description": "Which parts to return. Each one beyond 'basic' adds to the size of the answer.",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["basic", "files", "full_metadata"]
+            }
+          },
+          "file_format": {
+            "description": "Keep only files of this format, such as 'PDF' or 'MP3'. Matched case-insensitively.",
+            "type": "string",
+            "maxLength": 60
+          },
+          "max_files": {
+            "default": 25,
+            "description": "Ceiling on files returned.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200
+          },
+          "max_description_chars": {
+            "default": 2000,
+            "type": "integer",
+            "minimum": 100,
+            "maximum": 20000
+          }
+        },
+        "required": ["identifier"],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      }
     },
     {
       "name": "get_snapshot",
-      "description": "The Wayback capture closest to a date."
+      "description": "The Wayback capture closest to a date.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 2000,
+            "description": "Address to look up, such as 'lemonde.fr' or a full URL."
+          },
+          "at": {
+            "description": "Date to aim for, as YYYY-MM-DD or a full ISO 8601 timestamp. Omit for the newest capture.",
+            "type": "string"
+          }
+        },
+        "required": ["url"],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      }
     },
     {
       "name": "list_snapshots",
-      "description": "Captures of a page, oldest first."
+      "description": "Captures of a page, oldest first.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 2000,
+            "description": "Address to look up."
+          },
+          "limit": {
+            "default": 20,
+            "description": "Captures to return.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "cursor": {
+            "description": "The 'next_cursor' from a previous answer. Omit to start at the oldest capture.",
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "required": ["url"],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      }
     },
     {
       "name": "search_books",
-      "description": "Find a work, its author and its editions."
+      "description": "Find a work, its author and its editions.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "description": "Title or author, as free text. Optional when a criterion below is given.",
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 300
+          },
+          "subject": {
+            "description": "What the work is catalogued under, such as 'grief' or 'spy stories'. Also carries prizes and lists, such as 'Booker Prize'.",
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 100
+          },
+          "place": {
+            "description": "Where the work is set, such as 'Shanghai'.",
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 100
+          },
+          "time": {
+            "description": "The period the work treats, such as '20th century'.",
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 100
+          },
+          "person": {
+            "description": "Who the work is about, such as 'Napoleon'.",
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 100
+          },
+          "language": {
+            "description": "Three-letter code of the language, such as 'eng' or 'fre'.",
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 20
+          },
+          "year_from": {
+            "description": "Earliest first publication.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 2200
+          },
+          "year_to": {
+            "description": "Latest first publication.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 2200
+          },
+          "pages_min": {
+            "description": "Shortest acceptable work.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100000
+          },
+          "pages_max": {
+            "description": "Longest acceptable work. The count is a median across editions.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100000
+          },
+          "sort": {
+            "default": "relevance",
+            "description": "'rating' is how readers scored it, 'readers' is how many recorded reading it, and both answer a question relevance cannot. 'newest' and 'oldest' rank on 'first_published_year', which the index takes from edition records: read that field on each row against the work's page before repeating it.",
+            "type": "string",
+            "enum": ["relevance", "rating", "readers", "newest", "oldest"]
+          },
+          "limit": {
+            "default": 10,
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50
+          },
+          "page": {
+            "default": 1,
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          }
+        },
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      }
     }
   ],
   "compatibility": {
