@@ -66,3 +66,13 @@ export const networkError = (message: string, details?: ErrorDetails) =>
 
 export const timeout = (message: string, details?: ErrorDetails) =>
   new ArchiveError("timeout", message, details);
+
+/**
+ * A failure whose code is decided by what went wrong underneath it.
+ *
+ * Every other constructor here knows its code where it is written. A read made
+ * to check another read's answer does not: what it reports is the code of the
+ * failure it met, which exists only once that failure has happened.
+ */
+export const failedWith = (code: ErrorCode, message: string, details?: ErrorDetails) =>
+  new ArchiveError(code, message, details);
