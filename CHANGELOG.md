@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.0.2
+
+- **A capture lookup no longer reports an absence the Wayback Machine has not
+  established.** Its nearest-capture route answers a load it cannot serve with
+  the same body it sends for an address it holds nothing of, which turned a bad
+  minute at the Archive into "the Wayback Machine holds no capture of
+  lemonde.fr". An empty answer is now held to the capture index before it is
+  served: a row there makes the lookup a failure to retry, an index holding
+  nothing too makes it the absence it claims to be, and an index that cannot be
+  reached leaves the question open rather than settling it.
+
 ## 2.0.1
 
 - **Every tool is documented, with its arguments and what its answer carries.**

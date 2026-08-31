@@ -10,7 +10,8 @@
  * parse must not be served back for the rest of the cache's lifetime.
  */
 
-import { invalidInput } from "../errors.js";
+import type { ErrorCode } from "../errors.js";
+import { ArchiveError, failedWith, invalidInput, rateLimited } from "../errors.js";
 import type { Config, Logger } from "../config.js";
 import { MIN_ALLOWED_INTERVAL_MS, createLogger, loadConfig } from "../config.js";
 import { REPO_URL } from "../version.js";
@@ -44,6 +45,18 @@ import {
   nearestUrl,
   toArchiveStamp,
 } from "./urls.js";
+
+/**
+ * Codes that describe a read which never reached an answer.
+ *
+ * A failure carrying one of these leaves the question open, so it cannot be
+ * rewritten into a statement about what the Archive holds.
+ */
+const UNSETTLED: ReadonlySet<ErrorCode> = new Set<ErrorCode>([
+  "rate_limited",
+  "network_error",
+  "timeout",
+]);
 
 export interface ClientOptions {
   config?: Partial<Config>;
@@ -176,9 +189,60 @@ export class ArchiveClient {
     return this.read(url, (payload) => toItemDetail(payload, trimmed, url));
   }
 
-  getSnapshot(target: string, at?: Date): Promise<Read<NearestSnapshot>> {
+  /**
+   * Holds an empty nearest-capture answer to the capture index before it is
+   * served as an absence.
+   *
+   * The nearest-capture route answers a load it cannot serve with the body it
+   * sends for an address it holds nothing of: HTTP 200 and an empty snapshot
+   * block. The index runs on another service and matches an address more
+   * strictly than that route does, so a row there proves the empty answer
+   * wrong, and an index holding nothing either is what establishes the absence.
+   *
+   * Returns when the absence holds. Throws when it cannot be stated, either
+   * because the index contradicts it or because the index never settled it.
+   */
+  private async confirmNeverCaptured(target: string, url: string): Promise<void> {
+    // One row is all the question needs, and the shortest window is what keeps
+    // this off the deadline the index takes on a heavily captured address.
+    const probeUrl = historyUrl(target, 1);
+    let history: SnapshotHistory;
+    try {
+      const read = await this.read(probeUrl, (payload, onSkip) =>
+        toSnapshotHistory(payload, target, probeUrl, onSkip),
+      );
+      history = read.data;
+    } catch (error) {
+      const code = error instanceof ArchiveError ? error.code : "network_error";
+      throw failedWith(
+        UNSETTLED.has(code) ? code : "parse_failure",
+        `The Wayback Machine answered with no capture of ${target}, and its capture index did not answer either, so nothing establishes that it holds none.`,
+        {
+          hint: "Ask again in a moment. Neither answer says whether the Wayback Machine holds a capture of this address.",
+          url,
+          cause: error,
+        },
+      );
+    }
+
+    if (history.snapshots.length > 0) {
+      throw rateLimited(
+        `The Wayback Machine answered with no capture of ${target} while its capture index holds captures of it, so the empty answer is the route failing rather than an absence.`,
+        { url },
+      );
+    }
+  }
+
+  async getSnapshot(target: string, at?: Date): Promise<Read<NearestSnapshot>> {
     const url = nearestUrl(target, at ? toArchiveStamp(at) : undefined);
-    return this.read(url, (payload) => toNearestSnapshot(payload, target, at ?? null, url));
+    try {
+      return await this.read(url, (payload) => toNearestSnapshot(payload, target, at ?? null, url));
+    } catch (error) {
+      if (error instanceof ArchiveError && error.code === "not_found") {
+        await this.confirmNeverCaptured(target, url);
+      }
+      throw error;
+    }
   }
 
   /** Uses its own deadline: the capture index answers in tens of seconds. */
