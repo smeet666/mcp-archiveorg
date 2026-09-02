@@ -1,0 +1,1102 @@
+{
+  "author": "Damien Bouissou",
+  "authorUrl": "https://github.com/smeet666",
+  "description": "MCP server for the Internet Archive. Search inside digitised books, browse the catalogue, and read Wayback Machine snapshots. No API key required.",
+  "homepage": "https://github.com/smeet666/mcp-archiveorg#readme",
+  "identifier": "smeet666-mcp-archiveorg",
+  "name": "mcp-archiveorg",
+  "prompts": [],
+  "resources": [],
+  "tags": [
+    "mcp",
+    "model-context-protocol",
+    "internet-archive",
+    "archive-org",
+    "wayback-machine",
+    "full-text-search",
+    "open-library",
+    "books"
+  ],
+  "tools": [
+    {
+      "name": "search_inside",
+      "title": "Search inside scanned pages",
+      "description": "Search the text inside digitised books, newspapers and documents on the Internet Archive. This reads what optical recognition took off the scanned pages, so it finds a phrase that appears nowhere in a title or a catalogue record. Put a phrase in double quotes to hold the words together in that order. The index folds accents, case and punctuation before it matches, so the letters are not held: a quoted \"bûcher\" comes back on pages printing Bücher and Bucher. Read an excerpt before repeating a quoted query as the spelling a page carries. Without quotes the words are matched separately, which finds far more. 'total' counts the documents that match, and they page: ask for page 2, 3 and so on to see beyond the first answer. It is not a count of how many times the phrase occurs. The index reports no page number, so a match names the item and the passage, never a leaf. Follow source_url and search the item to find where the passage sits. When 'inside_container' is true the passage came from a document bundled inside the item, and the title, creator and year describe the container rather than the text that matched: read 'matched_file' for what actually holds it. Use search_items or search_books instead when looking for a work by its title, author or subject.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 300,
+            "description": "Words or a quoted phrase, such as '\"call me ishmael\"'."
+          },
+          "limit": {
+            "default": 10,
+            "description": "Matches to return.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50
+          },
+          "page": {
+            "default": 1,
+            "description": "Which page of matches, from 1. Paging stops at 100.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "max_excerpt_chars": {
+            "default": 300,
+            "description": "Budget for one passage. Read it together with 'max_excerpts_per_match': the size of the answer is the product of the two and the number of matches.",
+            "type": "integer",
+            "minimum": 80,
+            "maximum": 1200
+          },
+          "max_excerpts_per_match": {
+            "default": 3,
+            "description": "Passages to keep per match. The index finds several in a long work, and the later ones rarely say anything the first did not.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10
+          }
+        },
+        "required": ["query"],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "total": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Documents that match, not the number returned and not a count of occurrences. Raise 'page' to read further into it."
+          },
+          "page": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "hits": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "identifier": {
+                  "type": "string",
+                  "description": "Pass to get_item for the record."
+                },
+                "title": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "creator": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "year": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "matched_file": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "The document the passage was found in, when the item bundles several. Null when the item is the document itself."
+                },
+                "inside_container": {
+                  "type": "boolean",
+                  "description": "True when the passage comes from a document bundled inside the item, in which case the title, creator and year above describe the container and not the text that matched."
+                },
+                "excerpts": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Passages as a machine read them off the page."
+                },
+                "source_url": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "identifier",
+                "title",
+                "creator",
+                "year",
+                "matched_file",
+                "inside_container",
+                "excerpts",
+                "source_url"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": ["query", "total", "page", "hits", "notes"],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "search_items",
+      "title": "Search the catalogue",
+      "description": "Search the Internet Archive catalogue: films, books, recordings, images, software and datasets. This matches titles, creators and descriptions, so a compilation whose notes mention a name ranks alongside that person's own work: read 'creator' on each row before treating a result as theirs. It does not read the contents of a scan; use search_inside for a phrase within a book. Set 'media_type' whenever the kind of thing is known, because one title exists across several media and mixing them makes a result list unreadable. 'oldest', 'newest', 'year_from' and 'year_to' all read one field: the date a depositor typed into the record. An item with no date carries a placeholder the index sorts as a real one, a date written as a fragment is filed at the year that fragment reads as, and the field holds no era, so a Babylonian tablet of 1712 BCE answers a search of 1700 to 1750. Read an order or a range as a statement about that field. Every row carries an 'identifier', which get_item takes.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300,
+            "description": "Words to look for in titles, creators and descriptions."
+          },
+          "media_type": {
+            "description": "Narrow to one kind of thing. Strongly recommended.",
+            "type": "string",
+            "enum": ["texts", "movies", "audio", "image", "software", "data", "web"]
+          },
+          "year_from": {
+            "description": "Earliest year, inclusive, on the record's declared date, which carries no era.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 2200
+          },
+          "year_to": {
+            "description": "Latest year, inclusive, on the record's declared date, which carries no era.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 2200
+          },
+          "sort": {
+            "default": "relevance",
+            "description": "'downloads' surfaces what people actually read, which relevance alone often buries. 'oldest' and 'newest' rank on a declared date, not on when a thing was made.",
+            "type": "string",
+            "enum": ["relevance", "downloads", "newest", "oldest", "title"]
+          },
+          "limit": {
+            "default": 10,
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50
+          },
+          "page": {
+            "default": 1,
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          }
+        },
+        "required": ["query"],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "total": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Items matching across the catalogue, not the number returned."
+          },
+          "page": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "identifier": {
+                  "type": "string",
+                  "description": "Pass this to get_item to read the full record."
+                },
+                "title": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "creator": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "year": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "media_type": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "The kind the catalogue files this row under, in the Archive's own words. Most rows carry one of texts, movies, audio, image, software or data, and some carry a kind the filter cannot ask for, such as 'collection' for a page gathering items rather than an item itself."
+                },
+                "downloads": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "source_url": {
+                  "type": "string",
+                  "description": "Public page. Show this when citing the item."
+                }
+              },
+              "required": [
+                "identifier",
+                "title",
+                "creator",
+                "year",
+                "media_type",
+                "downloads",
+                "source_url"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": ["query", "total", "page", "items", "notes"],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "get_item",
+      "title": "Read an item",
+      "description": "Read one Internet Archive item by its identifier, as returned by search_items or search_inside. Sections are opt-in: 'basic' is the default and covers what a description needs. 'files' lists the downloadable files, which on a scanned film or book run to dozens of derivatives, so filter by format when a particular one is wanted. 'full_metadata' returns every field the Archive publishes for the item, which is large and rarely needed. 'file_count' and 'total_bytes' are always reported, whether or not the file list was asked for.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "identifier": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Archive identifier, such as 'nasa'. It is the last part of an item's address rather than the address itself, and it is matched exactly, capitals included."
+          },
+          "sections": {
+            "default": ["basic"],
+            "description": "Which parts to return. Each one beyond 'basic' adds to the size of the answer.",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["basic", "files", "full_metadata"]
+            }
+          },
+          "file_format": {
+            "description": "Keep only files of this format, such as 'PDF' or 'MP3'. Matched case-insensitively.",
+            "type": "string",
+            "maxLength": 60
+          },
+          "max_files": {
+            "default": 25,
+            "description": "Ceiling on files returned.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200
+          },
+          "max_description_chars": {
+            "default": 2000,
+            "type": "integer",
+            "minimum": 100,
+            "maximum": 20000
+          }
+        },
+        "required": ["identifier"],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "item": {
+            "type": "object",
+            "properties": {
+              "identifier": {
+                "type": "string",
+                "description": "Pass this to get_item to read the full record."
+              },
+              "title": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "creator": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "year": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "media_type": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "The kind the catalogue files this row under, in the Archive's own words. Most rows carry one of texts, movies, audio, image, software or data, and some carry a kind the filter cannot ask for, such as 'collection' for a page gathering items rather than an item itself."
+              },
+              "downloads": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "source_url": {
+                "type": "string",
+                "description": "Public page. Show this when citing the item."
+              }
+            },
+            "required": [
+              "identifier",
+              "title",
+              "creator",
+              "year",
+              "media_type",
+              "downloads",
+              "source_url"
+            ],
+            "additionalProperties": false
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "publisher": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Collections the item sits in."
+          },
+          "license_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Terms the uploader attached, when they attached any."
+          },
+          "file_count": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Files the item holds, whatever this answer returned."
+          },
+          "total_bytes": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "format": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "size_bytes": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "download_url": {
+                  "type": "string"
+                }
+              },
+              "required": ["name", "format", "size_bytes", "download_url"],
+              "additionalProperties": false
+            }
+          },
+          "full_metadata": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {}
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "item",
+          "description",
+          "date",
+          "publisher",
+          "language",
+          "collections",
+          "license_url",
+          "file_count",
+          "total_bytes",
+          "notes"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "get_snapshot",
+      "title": "Read a page as it was",
+      "description": "Find the Wayback Machine capture of a web page closest to a given date. Give 'at' to ask for a moment in time; leave it out for the most recent capture. The answer always states 'days_from_requested', because the closest capture can be years away from the date asked for: read it before describing what the page said on that date. It also states the address the capture is of, which the Wayback Machine can resolve to a neighbouring form of the one asked about. This finds the capture and links to it. It does not return the page's contents.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 2000,
+            "description": "Address to look up, such as 'lemonde.fr' or a full URL."
+          },
+          "at": {
+            "description": "Date to aim for, as YYYY-MM-DD or a full ISO 8601 timestamp. Omit for the newest capture.",
+            "type": "string"
+          }
+        },
+        "required": ["url"],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "requested_url": {
+            "type": "string"
+          },
+          "requested_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "snapshot": {
+            "type": "object",
+            "properties": {
+              "captured_at": {
+                "type": "string",
+                "description": "ISO 8601, in UTC."
+              },
+              "url": {
+                "type": "string",
+                "description": "The capture itself, readable as it was on that date."
+              },
+              "address": {
+                "type": "string",
+                "description": "The address this capture is of. The Wayback Machine indexes a site under several addresses at once, such as its www form, its https form and a form carrying credentials, so this can differ from the address that was asked about."
+              },
+              "status": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "What the original site answered when it was captured."
+              },
+              "days_from_requested": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Whole days between this capture and the moment asked for, counted down: a capture taken on the day asked about, when no time was given, is 0. Null when no date was given."
+              }
+            },
+            "required": ["captured_at", "url", "address", "status", "days_from_requested"],
+            "additionalProperties": false
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": ["requested_url", "requested_at", "snapshot", "notes"],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "list_snapshots",
+      "title": "List captures of a page",
+      "description": "List Wayback Machine captures of a web page, oldest first, with the dates they were taken. Answers how long a page has been archived and how often, which get_snapshot cannot. A capture whose content repeats the row before it is left out of the index answer. The index also holds one site under several addresses at once, such as its www form, its https form and a form carrying credentials, and returns them interleaved, so two consecutive rows can differ because the address differs rather than because the page did. Every row names the address it captured; read that before counting the captures of any one of them. A capture records when the crawler came, not when the page changed: the change happened somewhere between two dates. This route is slow, tens of seconds on a heavily archived address, and it is paged for that reason. To walk further back, pass the 'next_cursor' from the previous answer as 'cursor'. The index counts rows rather than positions, so there is no page number and no arithmetic to do: a null 'next_cursor' means the end of what it holds.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 2000,
+            "description": "Address to look up."
+          },
+          "limit": {
+            "default": 20,
+            "description": "Captures to return.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "cursor": {
+            "description": "The 'next_cursor' from a previous answer. Omit to start at the oldest capture.",
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "required": ["url"],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "returned": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Captures in this answer."
+          },
+          "first": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Earliest capture in this answer, not in the whole history."
+          },
+          "last": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Latest capture in this answer, not in the whole history."
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Pass back as 'cursor' to read the window after this one. Null at the end of the history."
+          },
+          "snapshots": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "captured_at": {
+                  "type": "string",
+                  "description": "ISO 8601, in UTC."
+                },
+                "url": {
+                  "type": "string",
+                  "description": "The capture itself, readable as it was on that date."
+                },
+                "address": {
+                  "type": "string",
+                  "description": "The address this capture is of. The Wayback Machine indexes a site under several addresses at once, such as its www form, its https form and a form carrying credentials, so this can differ from the address that was asked about."
+                },
+                "status": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "What the original site answered when it was captured."
+                }
+              },
+              "required": ["captured_at", "url", "address", "status"],
+              "additionalProperties": false
+            }
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": ["url", "returned", "first", "last", "next_cursor", "snapshots", "notes"],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "search_books",
+      "title": "Search works and editions",
+      "description": "Find a book on Open Library, the Internet Archive's catalogue of works, either by name or by description. Pass 'query' when you know what you are looking for: a title, an author. Free text matches parts of words and reads titles and authors together, so a name also finds works by authors whose name merely contains it: read 'authors' on each row before treating a result as that author's work. Pass the criteria instead when you do not, and they combine: 'subject' for what a work is catalogued under, 'place' for where it is set, 'time' for the period it treats, 'person' for who it is about, plus ranges on the year of first publication and on the page count. 'sort' by rating or by readers answers 'what is worth reading', which relevance alone does not. 'first_published_year' is the year Open Library derives from its edition records, and a reissue or a mistyped edition can put it centuries from the real date; 'newest' and 'oldest' rank on that field, so the rows carrying the doubtful years lead the order. Answers who wrote a book, when it first appeared and how many editions exist, which the item catalogue describes poorly because it holds one upload at a time. 'archive_identifiers' lists up to 3 scans of the work: pass one to get_item, or use it to read the book itself. 'scan_count' says how many the work has. A scan is one edition, and a work first printed centuries ago is often held only as a later reissue or a translation, so read the scan's own record before dating what it holds. Use this to identify a work, and search_inside to find a phrase within one.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "description": "Title or author, as free text. Optional when a criterion below is given.",
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 300
+          },
+          "subject": {
+            "description": "What the work is catalogued under, such as 'grief' or 'spy stories'. Also carries prizes and lists, such as 'Booker Prize'.",
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 100
+          },
+          "place": {
+            "description": "Where the work is set, such as 'Shanghai'.",
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 100
+          },
+          "time": {
+            "description": "The period the work treats, such as '20th century'.",
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 100
+          },
+          "person": {
+            "description": "Who the work is about, such as 'Napoleon'.",
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 100
+          },
+          "language": {
+            "description": "Three-letter code of the language, such as 'eng' or 'fre'.",
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 20
+          },
+          "year_from": {
+            "description": "Earliest first publication.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 2200
+          },
+          "year_to": {
+            "description": "Latest first publication.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 2200
+          },
+          "pages_min": {
+            "description": "Shortest acceptable work.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100000
+          },
+          "pages_max": {
+            "description": "Longest acceptable work. The count is a median across editions.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100000
+          },
+          "sort": {
+            "default": "relevance",
+            "description": "'rating' is how readers scored it, 'readers' is how many recorded reading it, and both answer a question relevance cannot. 'newest' and 'oldest' rank on 'first_published_year', which the index takes from edition records: read that field on each row against the work's page before repeating it.",
+            "type": "string",
+            "enum": ["relevance", "rating", "readers", "newest", "oldest"]
+          },
+          "limit": {
+            "default": 10,
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50
+          },
+          "page": {
+            "default": 1,
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          }
+        },
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The free text the caller sent, as it was sent. Null when the search was made of criteria alone."
+          },
+          "searched_for": {
+            "type": "string",
+            "description": "What this answer answers, in words: the free text and every criterion applied."
+          },
+          "total": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Works matching, not the number returned."
+          },
+          "page": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "books": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string"
+                },
+                "authors": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "first_published_year": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "The year Open Library derives from its edition records. A reissue or a mistyped edition can put it centuries from the date the work first appeared, so check it against the work's page before citing it."
+                },
+                "edition_count": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "archive_identifiers": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Scans of this work held by the Archive. Pass one to get_item. At most 3 are listed, so the list is a sample whenever 'scan_count' is larger; the work's page on Open Library holds them all."
+                },
+                "scan_count": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Scans of this work the Archive holds, whatever the list above shows."
+                },
+                "page_count": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Median pages across editions, which is what the index holds."
+                },
+                "subjects": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "What the work is catalogued under, trimmed to the most prominent."
+                },
+                "source_url": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "title",
+                "authors",
+                "first_published_year",
+                "edition_count",
+                "archive_identifiers",
+                "scan_count",
+                "page_count",
+                "subjects",
+                "source_url"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": ["query", "searched_for", "total", "page", "books", "notes"],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    }
+  ],
+  "version": "2.0.1"
+}
