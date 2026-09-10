@@ -84,7 +84,7 @@ export function ok(
   body: string,
   options: { notes?: string[]; sourceUrl?: string } = {},
 ): ToolResult {
-  const credit = options.sourceUrl ? `${ATTRIBUTION} — ${options.sourceUrl}` : ATTRIBUTION;
+  const credit = options.sourceUrl ? `${ATTRIBUTION} (${options.sourceUrl})` : ATTRIBUTION;
 
   // A long run of notes must not crowd out the answer it qualifies.
   const noteLines = (options.notes ?? []).map((note) => `Note: ${note}`);
