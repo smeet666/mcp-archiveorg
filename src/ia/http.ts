@@ -227,7 +227,7 @@ type Refusal =
  * An abandoned body keeps its socket out of the pool until it is consumed or
  * cancelled, so a body this never reads is cancelled here.
  *
- * The 400 is the interesting one: the site uses it for three different things —
+ * The 400 is the interesting one: the site uses it for three different things:
  * a request it objects to, which states what was wrong with it; a failure in
  * its own services, which states a reason marked as an error of its own; and a
  * refusal it gives no reason for at all. Only the first is the caller's to fix,
