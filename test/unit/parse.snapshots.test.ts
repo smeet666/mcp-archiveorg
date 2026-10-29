@@ -160,7 +160,7 @@ describe("toSnapshotHistory, good path", () => {
 
   it("returns captures oldest first, which is what the dates are read as", () => {
     const dates = history().snapshots.map((snapshot) => snapshot.capturedAt);
-    const sorted = [...dates].sort();
+    const sorted = [...dates].sort((a, b) => Number(a > b) - Number(a < b));
     expect(dates, "the order must be oldest first, as the tool's description promises").toEqual(
       sorted,
     );

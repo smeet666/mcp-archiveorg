@@ -123,7 +123,7 @@ describe("the tool list", () => {
     expect(
       tools.map((tool) => tool.name).sort(),
       "a tool that appears or disappears changes what a model will reach for",
-    ).toEqual([...TOOL_NAMES].sort());
+    ).toEqual([...TOOL_NAMES].sort((a, b) => Number(a > b) - Number(a < b)));
   });
 
   it("annotates every tool as read-only, because none of them writes", async () => {

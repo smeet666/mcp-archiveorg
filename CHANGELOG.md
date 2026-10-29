@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.0.2
+## 2.1.0
 
 - **A capture lookup no longer reports an absence the Wayback Machine has not
   established.** Its nearest-capture route answers a load it cannot serve with
@@ -10,6 +10,12 @@
   served: a row there makes the lookup a failure to retry, an index holding
   nothing too makes it the absence it claims to be, and an index that cannot be
   reached leaves the question open rather than settling it.
+- **Node.js 24.22.1 or later**, inside the Node.js 24 line. The package, the
+  extension manifest and the image all declare it.
+- **zod `^4.6.7`.** Below 4.6.6, zod can exhaust memory while
+  validating oversized constrained collections, and the range accepts none of
+  those versions.
+- **Dependency floors:** `@modelcontextprotocol/sdk` `^1.32.2`.
 
 ## 2.0.1
 
